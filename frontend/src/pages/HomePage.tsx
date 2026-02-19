@@ -1,87 +1,51 @@
-import { useState } from 'react';
-import { useCourts, useCreateBooking, useCreateCheckout } from '../hooks/useBooking';
-import BookingForm from '../components/BookingForm';
-import { Court } from '../types';
+import { useQuery } from '@tanstack/react-query';
+import { courtService } from '../services/courts';
 
-export default function HomePage() {
-  const { data: courts, isLoading } = useCourts();
-  const [selectedCourt, setSelectedCourt] = useState<Court | null>(null);
-  const createBooking = useCreateBooking();
-  const createCheckout = useCreateCheckout();
-
-  const handleBookingSubmit = async (data: {
-    startTime: string;
-    endTime: string;
-    notes?: string;
-  }) => {
-    if (!selectedCourt) return;
-
-    try {
-      const booking = await createBooking.mutateAsync({
-        courtId: selectedCourt.id,
-        ...data,
-      });
-
-      // Redirect to Stripe checkout
-      const checkout = await createCheckout.mutateAsync(booking.id);
-      if (checkout.sessionUrl) {
-        window.location.href = checkout.sessionUrl;
-      }
-    } catch (err) {
-      const error = err as { response?: { data?: { message?: string } } };
-      alert(error.response?.data?.message || 'Booking failed');
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">Loading courts...</div>
-      </div>
-    );
-  }
+function HomePage() {
+  const { data: courts = [], isLoading } = useQuery({
+    queryKey: ['courts'],
+    queryFn: () => courtService.getCourts(),
+  });
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Book a Court</h1>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <h1 className="text-4xl font-bold text-gray-900 mb-8">Welcome to PadelBooking</h1>
 
-      {selectedCourt ? (
-        <div className="max-w-md mx-auto bg-white p-6 rounded-lg shadow-lg">
-          <h2 className="text-xl font-bold mb-4">{selectedCourt.name}</h2>
-          <p className="text-gray-600 mb-4">{selectedCourt.description}</p>
-          <p className="text-lg font-semibold mb-6">€{selectedCourt.pricePerHour}/hour</p>
+      <div className="bg-white shadow rounded-lg p-6 mb-8">
+        <h2 className="text-2xl font-semibold mb-4">About Our Service</h2>
+        <p className="text-gray-600 mb-4">
+          Book your padel court easily and efficiently. Choose from our available courts and
+          secure your playing time.
+        </p>
+      </div>
 
-          <BookingForm
-            court={selectedCourt}
-            onSubmit={handleBookingSubmit}
-            onCancel={() => setSelectedCourt(null)}
-          />
-        </div>
-      ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courts?.map((court) => (
-            <div key={court.id} className="bg-white p-6 rounded-lg shadow-lg">
-              <h2 className="text-xl font-bold mb-2">{court.name}</h2>
-              <p className="text-gray-600 mb-4">{court.description}</p>
-              <p className="text-2xl font-bold text-blue-600 mb-4">
-                €{court.pricePerHour}/hour
-              </p>
-              <button
-                onClick={() => setSelectedCourt(court)}
-                className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-              >
-                Book Now
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {(!courts || courts.length === 0) && (
-        <div className="text-center text-gray-500">
-          No courts available at the moment.
-        </div>
-      )}
+      <div>
+        <h2 className="text-2xl font-semibold mb-4">Available Courts</h2>
+        {isLoading ? (
+          <div className="text-center py-8">Loading courts...</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {courts.map((court) => (
+              <div key={court.id} className="bg-white shadow rounded-lg p-6">
+                <h3 className="text-xl font-semibold mb-2">{court.name}</h3>
+                {court.description && <p className="text-gray-600 mb-4">{court.description}</p>}
+                <div className="flex justify-between items-center">
+                  <span className="text-lg font-bold text-blue-600">€{court.hourly_rate}/hour</span>
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm ${
+                      court.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    }`}
+                  >
+                    {court.is_active ? 'Available' : 'Unavailable'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
+
+export default HomePage;
