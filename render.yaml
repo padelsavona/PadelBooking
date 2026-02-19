@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: padel-backend
+    env: python
+    buildCommand: "pip install -r backend/requirements.txt"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port 10000"
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+    plan: free
+    autoDeploy: true
+    rootDir: backend
+
+  - type: web
+    name: padel-frontend
+    env: node
+    buildCommand: "cd frontend && pnpm install && pnpm run build"
+    startCommand: "cd frontend && pnpm run preview -- --host 0.0.0.0 --port 3000"
+    plan: free
+    autoDeploy: true
+    rootDir: frontend
