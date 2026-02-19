@@ -4,6 +4,8 @@ import { useAuthStore } from './stores/authStore';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import BookingsPage from './pages/BookingsPage';
+import RegisterPage from './pages/RegisterPage';
+import AdminPage from './pages/AdminPage';
 
 function App() {
   const { user, logout, initialize } = useAuthStore();
@@ -34,7 +36,15 @@ function App() {
                       to="/bookings"
                       className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
                     >
-                      My Bookings
+                      Le mie prenotazioni
+                    </Link>
+                  )}
+                  {user && (user.role === 'admin' || user.role === 'manager') && (
+                    <Link
+                      to="/admin"
+                      className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+                    >
+                      Amministrazione
                     </Link>
                   )}
                 </div>
@@ -49,7 +59,7 @@ function App() {
                       onClick={logout}
                       className="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700"
                     >
-                      Logout
+                      Esci
                     </button>
                   </div>
                 ) : (
@@ -57,7 +67,7 @@ function App() {
                     to="/login"
                     className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
                   >
-                    Login
+                    Accedi
                   </Link>
                 )}
               </div>
@@ -69,7 +79,9 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
             <Route path="/bookings" element={<BookingsPage />} />
+            <Route path="/admin" element={<AdminPage />} />
           </Routes>
         </main>
       </div>

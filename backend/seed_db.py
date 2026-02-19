@@ -29,6 +29,13 @@ def seed_database():
             )
             session.add(admin)
             print("✓ Created admin user: admin@padelbooking.com / Admin123!")
+        else:
+            existing_admin.full_name = "Admin User"
+            existing_admin.hashed_password = get_password_hash("Admin123!")
+            existing_admin.role = UserRole.ADMIN
+            existing_admin.is_active = True
+            session.add(existing_admin)
+            print("✓ Updated admin user credentials: admin@padelbooking.com / Admin123!")
 
         # Check if courts already exist
         statement = select(Court)
@@ -59,6 +66,16 @@ def seed_database():
             for court in courts:
                 session.add(court)
             print(f"✓ Created {len(courts)} courts")
+        else:
+            reactivated = 0
+            for court in existing_courts:
+                if not court.is_active:
+                    court.is_active = True
+                    session.add(court)
+                    reactivated += 1
+
+            if reactivated > 0:
+                print(f"✓ Reactivated {reactivated} existing courts")
 
         session.commit()
         print("\n✓ Database seeded successfully!")

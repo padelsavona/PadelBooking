@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { courtService } from '../services/courts';
 import { bookingService } from '../services/bookings';
@@ -8,9 +8,10 @@ import { useAuthStore } from '../stores/authStore';
 function HomePage() {
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
+  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
 
-  const [courtId, setCourtId] = useState<number | ''>('');
-  const [date, setDate] = useState<string>('');
+  const [courtId, setCourtId] = useState<number | string | ''>('');
+  const [date, setDate] = useState<string>(today);
   const [startTime, setStartTime] = useState<string>('08:00');
   const [endTime, setEndTime] = useState<string>('09:00');
   const [notes, setNotes] = useState<string>('');
@@ -18,7 +19,35 @@ function HomePage() {
 
   const { data: courts = [], isLoading, isError, error } = useQuery({
     queryKey: ['courts'],
-    queryFn: () => courtService.getCourts(),
+    queryFn: async () => {
+      const activeCourts = await courtService.getCourts(true);
+      if (activeCourts.length > 0) {
+        return activeCourts;
+      }
+
+      return courtService.getCourts(false);
+    },
+  });
+
+  useEffect(() => {
+    if (courtId !== '' || courts.length === 0) {
+      return;
+    }
+
+    const firstActiveCourt = courts.find((court) => court.is_active);
+    if (firstActiveCourt) {
+      setCourtId(firstActiveCourt.id);
+      return;
+    }
+
+    setCourtId(courts[0].id);
+  }, [courts, courtId]);
+
+  const { data: availability, isLoading: isAvailabilityLoading } = useQuery({
+    queryKey: ['courtAvailability', courtId, date],
+    queryFn: () => courtService.getAvailability(courtId, date),
+    enabled: Boolean(courtId && date),
+    refetchInterval: 15000,
   });
 
   const createBookingMutation = useMutation({
@@ -57,17 +86,17 @@ function HomePage() {
     setMessage('');
 
     if (!user) {
-      setMessage('Please login to continue.');
+      setMessage('Accedi per continuare.');
       return;
     }
 
     if (!courtId || !date) {
-      setMessage('Please select court and date.');
+      setMessage('Seleziona campo e data.');
       return;
     }
 
     if (timeOptions.indexOf(endTime) <= timeOptions.indexOf(startTime)) {
-      setMessage('End time must be after start time.');
+      setMessage('L’orario di fine deve essere successivo all’orario di inizio.');
       return;
     }
 
@@ -82,7 +111,7 @@ function HomePage() {
           end_time,
           notes,
         });
-        setMessage('Timeslot blocked successfully.');
+        setMessage('Fascia oraria bloccata con successo.');
       } else {
         const booking = await createBookingMutation.mutateAsync({
           court_id: Number(courtId),
@@ -97,24 +126,25 @@ function HomePage() {
       }
 
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['courtAvailability', courtId, date] });
       setNotes('');
     } catch (error) {
       const apiError = error as { response?: { data?: { detail?: string } } };
-      setMessage(apiError.response?.data?.detail || 'Operation failed.');
+      setMessage(apiError.response?.data?.detail || 'Operazione non riuscita.');
     }
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <h1 className="text-4xl font-bold text-gray-900 mb-6">Padel Booking</h1>
+      <h1 className="text-4xl font-bold text-gray-900 mb-6">Prenotazione Padel</h1>
       <p className="text-gray-600 mb-10">
-        Book courts between 00:00 and 24:00. Players pay online with Stripe; admins can block
-        timeslots without payment.
+        Prenota i campi tra le 00:00 e le 24:00. I giocatori pagano online con Stripe; gli
+        amministratori possono bloccare fasce orarie senza pagamento.
       </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
-          <h2 className="text-2xl font-semibold mb-4">Available Courts</h2>
+          <h2 className="text-2xl font-semibold mb-4">Campi disponibili</h2>
           {isLoading ? (
             <div className="text-center py-8">Caricamento campi...</div>
           ) : isError ? (
@@ -122,13 +152,22 @@ function HomePage() {
               Errore nel caricamento dei campi.
               {error instanceof Error ? ` Dettaglio: ${error.message}` : ''}
             </div>
+          ) : courts.length === 0 ? (
+            <div className="bg-white shadow rounded-lg p-5 text-gray-700">
+              Nessun campo disponibile al momento.
+            </div>
           ) : (
             <div className="space-y-4">
               {courts.map((court) => (
                 <div key={court.id} className="bg-white shadow rounded-lg p-5">
-                  <h3 className="text-lg font-semibold text-gray-900">{court.name}</h3>
-                  <p className="text-sm text-gray-600 mt-1">{court.description || 'No description'}</p>
-                  <p className="text-sm mt-2 font-medium text-blue-700">€{court.hourly_rate}/hour</p>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {court.name}
+                    {!court.is_active && (
+                      <span className="ml-2 text-xs font-medium text-red-600">Disattivato</span>
+                    )}
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">{court.description || 'Nessuna descrizione'}</p>
+                  <p className="text-sm mt-2 font-medium text-blue-700">€{court.hourly_rate}/ora</p>
                 </div>
               ))}
             </div>
@@ -137,24 +176,26 @@ function HomePage() {
 
         <div className="bg-white shadow rounded-lg p-6">
           <h2 className="text-2xl font-semibold mb-4">
-            {user?.role === 'admin' || user?.role === 'manager' ? 'Block Timeslot' : 'Create Booking'}
+            {user?.role === 'admin' || user?.role === 'manager'
+              ? 'Blocca fascia oraria'
+              : 'Crea prenotazione'}
           </h2>
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Court</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Campo</label>
               <select
                 className="w-full border rounded-md px-3 py-2"
                 value={courtId}
                 onChange={(event) => {
                   const value = event.target.value;
-                  setCourtId(value === '' ? '' : Number(value));
+                  setCourtId(value === '' ? '' : value);
                 }}
                 required
               >
-                <option value="">Select court</option>
+                <option value="">Seleziona campo</option>
                 {courts.map((court) => (
-                  <option key={court.id} value={court.id}>
+                  <option key={court.id} value={court.id} disabled={!court.is_active}>
                     {court.name}
                   </option>
                 ))}
@@ -162,7 +203,7 @@ function HomePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Data</label>
               <input
                 type="date"
                 className="w-full border rounded-md px-3 py-2"
@@ -172,9 +213,49 @@ function HomePage() {
               />
             </div>
 
+            <div className="border rounded-md p-4 bg-gray-50">
+              <h3 className="text-sm font-semibold text-gray-800 mb-2">Ore occupate/libere</h3>
+              {!courtId || !date ? (
+                <p className="text-sm text-gray-600">Seleziona campo e data per visualizzare la disponibilità.</p>
+              ) : isAvailabilityLoading ? (
+                <p className="text-sm text-gray-600">Caricamento disponibilità...</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="font-medium text-red-700 mb-1">Occupate</p>
+                    {availability && availability.occupied_hours.length > 0 ? (
+                      <ul className="space-y-1 max-h-32 overflow-y-auto">
+                        {availability.occupied_hours.map((hour) => (
+                          <li key={hour} className="text-gray-700">
+                            {hour}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-gray-600">Nessuna ora occupata.</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium text-green-700 mb-1">Libere</p>
+                    {availability && availability.free_hours.length > 0 ? (
+                      <ul className="space-y-1 max-h-32 overflow-y-auto">
+                        {availability.free_hours.map((hour) => (
+                          <li key={hour} className="text-gray-700">
+                            {hour}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-gray-600">Nessuna ora libera.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Start</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Inizio</label>
                 <select
                   className="w-full border rounded-md px-3 py-2"
                   value={startTime}
@@ -189,7 +270,7 @@ function HomePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">End</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fine</label>
                 <select
                   className="w-full border rounded-md px-3 py-2"
                   value={endTime}
@@ -205,7 +286,7 @@ function HomePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Note</label>
               <textarea
                 className="w-full border rounded-md px-3 py-2"
                 rows={3}
@@ -228,10 +309,10 @@ function HomePage() {
               {createBookingMutation.isPending ||
               createCheckoutMutation.isPending ||
               blockTimeslotMutation.isPending
-                ? 'Processing...'
+                ? 'Elaborazione...'
                 : user?.role === 'admin' || user?.role === 'manager'
-                  ? 'Block Timeslot'
-                  : 'Book & Pay'}
+                  ? 'Blocca fascia oraria'
+                  : 'Prenota e paga'}
             </button>
           </form>
         </div>

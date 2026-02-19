@@ -52,6 +52,7 @@ export const useCreateBooking = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-bookings'] });
       queryClient.invalidateQueries({ queryKey: ['court-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['courtAvailability'] });
     },
   });
 };
@@ -68,6 +69,7 @@ export const useCancelBooking = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-bookings'] });
       queryClient.invalidateQueries({ queryKey: ['court-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['courtAvailability'] });
     },
   });
 };
@@ -97,6 +99,7 @@ export const useBlockTime = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['court-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['courtAvailability'] });
     },
   });
 };

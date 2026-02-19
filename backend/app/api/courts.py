@@ -1,9 +1,11 @@
+from datetime import date, datetime, time, timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlmodel import Session, select
+from sqlmodel import Session, and_, select
 
 from app.api.auth import get_current_user
 from app.db.session import get_session
-from app.models import Court, User, UserRole
+from app.models import Booking, BookingStatus, Court, User, UserRole
 from app.schemas import CourtCreate, CourtResponse, CourtUpdate
 
 router = APIRouter()
@@ -62,6 +64,59 @@ async def get_court(
             detail="Court not found",
         )
     return court
+
+
+@router.get("/{court_id}/availability")
+async def get_court_availability(
+    court_id: int,
+    date_value: date = Query(..., alias="date"),
+    session: Session = Depends(get_session),
+) -> dict[str, object]:
+    """Get occupied and free one-hour slots for a specific court and date."""
+    court = session.get(Court, court_id)
+    if not court or not court.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Court not found or inactive",
+        )
+
+    day_start = datetime.combine(date_value, time.min)
+    day_end = day_start + timedelta(days=1)
+
+    statement = select(Booking).where(
+        and_(
+            Booking.court_id == court_id,
+            Booking.status.in_([BookingStatus.PENDING, BookingStatus.CONFIRMED]),
+            Booking.start_time < day_end,
+            Booking.end_time > day_start,
+        )
+    )
+
+    bookings = session.exec(statement).all()
+
+    occupied_hours: list[str] = []
+    free_hours: list[str] = []
+
+    for hour in range(24):
+        slot_start = day_start + timedelta(hours=hour)
+        slot_end = slot_start + timedelta(hours=1)
+        slot_label = f"{slot_start.strftime('%H:%M')}-{slot_end.strftime('%H:%M')}"
+
+        is_occupied = any(
+            booking.start_time < slot_end and booking.end_time > slot_start for booking in bookings
+        )
+
+        if is_occupied:
+            occupied_hours.append(slot_label)
+        else:
+            free_hours.append(slot_label)
+
+    return {
+        "court_id": court_id,
+        "date": date_value.isoformat(),
+        "occupied_hours": occupied_hours,
+        "free_hours": free_hours,
+    }
 
 
 @router.patch("/{court_id}", response_model=CourtResponse)

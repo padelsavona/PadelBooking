@@ -20,7 +20,7 @@ export interface User {
 }
 
 export interface Court {
-  id: number;
+  id: number | string;
   name: string;
   description?: string;
   is_active: boolean;
@@ -30,9 +30,17 @@ export interface Court {
   created_at: string;
 }
 
+export interface CourtAvailability {
+  court_id: number | string;
+  date: string;
+  occupied_hours: string[];
+  free_hours: string[];
+}
+
 export interface Booking {
   id: number; // torna a number per coerenza con checkout/cancel API
   court_id?: number; // <- aggiungi questo campo
+  courtId?: number | string;
 
   // già presenti
   start_time: string;
@@ -53,7 +61,8 @@ export interface Booking {
 }
 
 export interface LoginRequest {
-  username: string;
+  email?: string;
+  username?: string;
   password: string;
 }
 

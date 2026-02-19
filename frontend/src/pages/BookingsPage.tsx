@@ -13,17 +13,33 @@ function BookingsPage() {
     mutationFn: bookingService.cancelBooking,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['courtAvailability'] });
     },
   });
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-US', {
+    return new Date(dateString).toLocaleString('it-IT', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+  
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'confirmed':
+        return 'Confermata';
+      case 'pending':
+        return 'In attesa';
+      case 'cancelled':
+        return 'Annullata';
+      case 'completed':
+        return 'Completata';
+      default:
+        return status;
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -43,13 +59,13 @@ function BookingsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">My Bookings</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-8">Le mie prenotazioni</h1>
 
       {isLoading ? (
-        <div className="text-center py-8">Loading bookings...</div>
+        <div className="text-center py-8">Caricamento prenotazioni...</div>
       ) : bookings.length === 0 ? (
         <div className="bg-white shadow rounded-lg p-8 text-center">
-          <p className="text-gray-600">No bookings found. Book a court to get started!</p>
+          <p className="text-gray-600">Nessuna prenotazione trovata. Prenota un campo per iniziare.</p>
         </div>
       ) : (
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
@@ -60,20 +76,20 @@ function BookingsPage() {
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-medium text-gray-900">
-                        Booking #{booking.id} - Court {booking.court_id ?? booking.court?.id ?? '—'}
+                        Prenotazione #{booking.id} - Campo {booking.court_id ?? booking.court?.id ?? '—'}
                       </h3>
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}
                       >
-                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                        {getStatusLabel(booking.status)}
                       </span>
                     </div>
                     <div className="mt-2 text-sm text-gray-600">
-                      <p>Type: {booking.is_blocked ? 'Blocked slot' : 'Player booking'}</p>
-                      <p>Payment: {booking.payment_status}</p>
-                      <p>Start: {formatDate(booking.start_time)}</p>
-                      <p>End: {formatDate(booking.end_time)}</p>
-                      <p className="mt-1 font-semibold">Price: €{booking.total_price.toFixed(2)}</p>
+                      <p>Tipo: {booking.is_blocked ? 'Slot bloccato' : 'Prenotazione giocatore'}</p>
+                      <p>Pagamento: {booking.payment_status}</p>
+                      <p>Inizio: {formatDate(booking.start_time)}</p>
+                      <p>Fine: {formatDate(booking.end_time)}</p>
+                      <p className="mt-1 font-semibold">Prezzo: €{booking.total_price.toFixed(2)}</p>
                       {booking.notes && <p className="mt-1 italic">{booking.notes}</p>}
                     </div>
                   </div>
@@ -83,7 +99,7 @@ function BookingsPage() {
                       disabled={cancelMutation.isPending}
                       className="ml-4 px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 disabled:opacity-50"
                     >
-                      Cancel
+                      Annulla
                     </button>
                   )}
                 </div>
