@@ -10,8 +10,8 @@ import { authenticate, requireAdmin } from '../middleware/auth.middleware.js';
 
 export default async function bookingRoutes(fastify: FastifyInstance) {
   // Create booking
-  fastify.post('/', { onRequest: [authenticate] }, async (request, reply) => {
-    const user = request.user as any;
+  fastify.post('/', { onRequest: [authenticate] }, async (request) => {
+    const user = request.user as { id: string };
     const body = createBookingSchema.parse(request.body);
 
     const booking = await createBooking(
@@ -26,8 +26,8 @@ export default async function bookingRoutes(fastify: FastifyInstance) {
   });
 
   // Block time (admin only)
-  fastify.post('/block', { onRequest: [authenticate, requireAdmin] }, async (request, reply) => {
-    const user = request.user as any;
+  fastify.post('/block', { onRequest: [authenticate, requireAdmin] }, async (request) => {
+    const user = request.user as { id: string };
     const body = blockTimeSchema.parse(request.body);
 
     const booking = await createBooking(
@@ -43,20 +43,20 @@ export default async function bookingRoutes(fastify: FastifyInstance) {
   });
 
   // Get user's bookings
-  fastify.get('/my-bookings', { onRequest: [authenticate] }, async (request, reply) => {
-    const user = request.user as any;
+  fastify.get('/my-bookings', { onRequest: [authenticate] }, async (request) => {
+    const user = request.user as { id: string };
     return getUserBookings(user.id);
   });
 
   // Get booking by ID
-  fastify.get('/:id', { onRequest: [authenticate] }, async (request, reply) => {
+  fastify.get('/:id', { onRequest: [authenticate] }, async (request) => {
     const { id } = request.params as { id: string };
     return getBookingById(id);
   });
 
   // Cancel booking
-  fastify.patch('/:id', { onRequest: [authenticate] }, async (request, reply) => {
-    const user = request.user as any;
+  fastify.patch('/:id', { onRequest: [authenticate] }, async (request) => {
+    const user = request.user as { id: string; role: string };
     const { id } = request.params as { id: string };
     const body = updateBookingSchema.parse(request.body);
 

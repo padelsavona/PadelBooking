@@ -27,8 +27,9 @@ export default function AdminPage() {
       });
       alert('Time blocked successfully');
       setNotes('');
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to block time');
+    } catch (err) {
+      const error = err as { response?: { data?: { message?: string } } };
+      alert(error.response?.data?.message || 'Failed to block time');
     }
   };
 

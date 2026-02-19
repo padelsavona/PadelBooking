@@ -10,8 +10,9 @@ export default function MyBookingsPage() {
       try {
         await cancelBooking.mutateAsync(bookingId);
         alert('Booking cancelled successfully');
-      } catch (err: any) {
-        alert(err.response?.data?.message || 'Failed to cancel booking');
+      } catch (err) {
+        const error = err as { response?: { data?: { message?: string } } };
+        alert(error.response?.data?.message || 'Failed to cancel booking');
       }
     }
   };

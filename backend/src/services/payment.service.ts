@@ -4,7 +4,7 @@ import { AppError } from '../errors.js';
 import { getBookingById } from './booking.service.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2025-02-24.acacia',
 });
 
 export const createCheckoutSession = async (bookingId: string, userId: string) => {
@@ -68,7 +68,7 @@ export const createCheckoutSession = async (bookingId: string, userId: string) =
   return { sessionUrl: session.url, sessionId: session.id };
 };
 
-export const handleWebhook = async (body: any, signature: string) => {
+export const handleWebhook = async (body: Buffer, signature: string) => {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!webhookSecret) {
     throw new Error('Webhook secret not configured');
@@ -78,8 +78,9 @@ export const handleWebhook = async (body: any, signature: string) => {
 
   try {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-  } catch (err: any) {
-    throw new AppError(400, `Webhook Error: ${err.message}`, 'WEBHOOK_ERROR');
+  } catch (err) {
+    const error = err as Error;
+    throw new AppError(400, `Webhook Error: ${error.message}`, 'WEBHOOK_ERROR');
   }
 
   // Handle the event

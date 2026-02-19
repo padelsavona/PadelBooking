@@ -28,7 +28,7 @@ async function seed() {
   }
 
   // Create sample courts
-  const court1 = await prisma.court.upsert({
+  await prisma.court.upsert({
     where: { id: '00000000-0000-0000-0000-000000000001' },
     update: {},
     create: {
@@ -39,7 +39,7 @@ async function seed() {
     },
   });
 
-  const court2 = await prisma.court.upsert({
+  await prisma.court.upsert({
     where: { id: '00000000-0000-0000-0000-000000000002' },
     update: {},
     create: {

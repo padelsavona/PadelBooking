@@ -6,7 +6,7 @@ import { authenticate } from '../middleware/auth.middleware.js';
 
 export default async function authRoutes(fastify: FastifyInstance) {
   // Register
-  fastify.post('/register', async (request, reply) => {
+  fastify.post('/register', async (request) => {
     const body = registerSchema.parse(request.body);
     const user = await createUser(body.email, body.password, body.name);
     const token = fastify.jwt.sign({ id: user.id, email: user.email, role: user.role });
@@ -14,7 +14,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
   });
 
   // Login
-  fastify.post('/login', async (request, reply) => {
+  fastify.post('/login', async (request) => {
     const body = loginSchema.parse(request.body);
     const user = await findUserByEmail(body.email);
 
@@ -23,13 +23,14 @@ export default async function authRoutes(fastify: FastifyInstance) {
     }
 
     const token = fastify.jwt.sign({ id: user.id, email: user.email, role: user.role });
-    const { password: _, ...userWithoutPassword } = user;
+    const { password, ...userWithoutPassword } = user;
+    void password; // Suppress unused variable warning
     return { user: userWithoutPassword, token };
   });
 
   // Get current user
-  fastify.get('/me', { onRequest: [authenticate] }, async (request, reply) => {
-    const jwtUser = request.user as any;
+  fastify.get('/me', { onRequest: [authenticate] }, async (request) => {
+    const jwtUser = request.user as { id: string };
     const user = await findUserById(jwtUser.id);
     if (!user) {
       throw new AppError(404, 'User not found', 'USER_NOT_FOUND');

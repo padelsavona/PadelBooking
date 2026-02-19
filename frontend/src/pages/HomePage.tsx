@@ -27,8 +27,9 @@ export default function HomePage() {
       if (checkout.sessionUrl) {
         window.location.href = checkout.sessionUrl;
       }
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Booking failed');
+    } catch (err) {
+      const error = err as { response?: { data?: { message?: string } } };
+      alert(error.response?.data?.message || 'Booking failed');
     }
   };
 

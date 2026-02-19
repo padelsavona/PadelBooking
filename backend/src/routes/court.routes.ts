@@ -11,18 +11,18 @@ import { authenticate, requireAdmin } from '../middleware/auth.middleware.js';
 
 export default async function courtRoutes(fastify: FastifyInstance) {
   // Get all courts (public)
-  fastify.get('/', async (request, reply) => {
+  fastify.get('/', async () => {
     return getAllCourts();
   });
 
   // Get court by ID (public)
-  fastify.get('/:id', async (request, reply) => {
+  fastify.get('/:id', async (request) => {
     const { id } = request.params as { id: string };
     return getCourtById(id);
   });
 
   // Get court bookings (public)
-  fastify.get('/:id/bookings', async (request, reply) => {
+  fastify.get('/:id/bookings', async (request) => {
     const { id } = request.params as { id: string };
     const { startDate, endDate } = request.query as { startDate?: string; endDate?: string };
 
@@ -33,23 +33,15 @@ export default async function courtRoutes(fastify: FastifyInstance) {
   });
 
   // Create court (admin only)
-  fastify.post(
-    '/',
-    { onRequest: [authenticate, requireAdmin] },
-    async (request, reply) => {
-      const body = createCourtSchema.parse(request.body);
-      return createCourt(body);
-    }
-  );
+  fastify.post('/', { onRequest: [authenticate, requireAdmin] }, async (request) => {
+    const body = createCourtSchema.parse(request.body);
+    return createCourt(body);
+  });
 
   // Update court (admin only)
-  fastify.patch(
-    '/:id',
-    { onRequest: [authenticate, requireAdmin] },
-    async (request, reply) => {
-      const { id } = request.params as { id: string };
-      const body = updateCourtSchema.parse(request.body);
-      return updateCourt(id, body);
-    }
-  );
+  fastify.patch('/:id', { onRequest: [authenticate, requireAdmin] }, async (request) => {
+    const { id } = request.params as { id: string };
+    const body = updateCourtSchema.parse(request.body);
+    return updateCourt(id, body);
+  });
 }

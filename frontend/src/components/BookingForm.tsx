@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { format, addHours, startOfHour, isBefore } from 'date-fns';
+import { format, addHours, startOfHour } from 'date-fns';
 import { Court } from '../types';
 
 interface BookingFormProps {

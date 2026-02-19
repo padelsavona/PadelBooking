@@ -9,21 +9,24 @@ export class AppError extends Error {
   }
 }
 
-export const errorHandler = async (error: Error, request: any, reply: any) => {
+export const errorHandler = async (error: Error, request: unknown, reply: unknown) => {
+  const req = request as { id?: string; log?: { error: (err: Error) => void } };
+  const rep = reply as { status: (code: number) => { send: (data: unknown) => unknown } };
+
   if (error instanceof AppError) {
-    return reply.status(error.statusCode).send({
+    return rep.status(error.statusCode).send({
       code: error.code || 'ERROR',
       message: error.message,
-      traceId: request.id,
+      traceId: req.id,
     });
   }
 
   // Log unexpected errors
-  request.log.error(error);
+  req.log?.error(error);
 
-  return reply.status(500).send({
+  return rep.status(500).send({
     code: 'INTERNAL_SERVER_ERROR',
     message: 'An unexpected error occurred',
-    traceId: request.id,
+    traceId: req.id,
   });
 };

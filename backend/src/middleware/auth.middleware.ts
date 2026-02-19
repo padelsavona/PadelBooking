@@ -1,7 +1,7 @@
-import { FastifyRequest, FastifyReply } from 'fastify';
+import { FastifyRequest } from 'fastify';
 import { AppError } from '../errors.js';
 
-export const authenticate = async (request: FastifyRequest, reply: FastifyReply) => {
+export const authenticate = async (request: FastifyRequest) => {
   try {
     await request.jwtVerify();
   } catch (err) {
@@ -9,8 +9,8 @@ export const authenticate = async (request: FastifyRequest, reply: FastifyReply)
   }
 };
 
-export const requireAdmin = async (request: FastifyRequest, _reply: FastifyReply) => {
-  const user = request.user as any;
+export const requireAdmin = async (request: FastifyRequest) => {
+  const user = request.user as { role?: string };
   if (user.role !== 'ADMIN') {
     throw new AppError(403, 'Admin access required', 'FORBIDDEN');
   }
