@@ -43,7 +43,7 @@ async def list_courts(
     """List all courts."""
     statement = select(Court)
     if active_only:
-        statement = statement.where(Court.is_active == True)
+        statement = statement.where(Court.is_active.is_(True))
     statement = statement.offset(skip).limit(limit)
     courts = session.exec(statement).all()
     return list(courts)
