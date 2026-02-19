@@ -80,9 +80,9 @@ NODE_ENV=development
 PORT=3000
 FRONTEND_URL=http://localhost:5173
 
-# Admin Account
+# Admin Account (REQUIRED for seeding)
 ADMIN_EMAIL=admin@padelbooking.com
-ADMIN_PASSWORD=change-this-password
+ADMIN_PASSWORD=YourSecurePasswordHere123!
 ```
 
 ### 3. Start PostgreSQL
@@ -153,7 +153,7 @@ The application will be available at:
 
 Default admin credentials (from seed):
 - Email: `admin@padelbooking.com`
-- Password: `admin123456` (or from your ADMIN_PASSWORD env var)
+- Password: (the one you set in `ADMIN_PASSWORD` env var)
 
 ## Development
 

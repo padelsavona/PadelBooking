@@ -7,7 +7,12 @@ async function seed() {
 
   // Create admin user
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@padelbooking.com';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123456';
+  const adminPassword = process.env.ADMIN_PASSWORD;
+
+  if (!adminPassword) {
+    console.error('ADMIN_PASSWORD environment variable is required for seeding');
+    process.exit(1);
+  }
 
   const existingAdmin = await prisma.user.findUnique({
     where: { email: adminEmail },

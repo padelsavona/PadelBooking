@@ -77,7 +77,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {!courts || courts.length === 0 && (
+      {(!courts || courts.length === 0) && (
         <div className="text-center text-gray-500">
           No courts available at the moment.
         </div>
