@@ -1,6 +1,7 @@
 from typing import Any
 
 import stripe
+from fastapi import Response
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from sqlmodel import Session
 
@@ -14,10 +15,15 @@ router = APIRouter()
 
 
 def _configure_stripe() -> None:
+    if not settings.payments_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Pagamenti disabilitati",
+        )
     if not settings.stripe_secret_key:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Stripe is not configured",
+            detail="Stripe non è configurato",
         )
     stripe.api_key = settings.stripe_secret_key
 
@@ -28,33 +34,36 @@ async def create_checkout_session(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ) -> CheckoutResponse:
-    """Create a Stripe Checkout session for a player booking."""
+    """Crea una sessione Stripe per una prenotazione, se abilitato."""
+    if not settings.payments_enabled:
+        raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Pagamenti disabilitati")
+
     if current_user.role != UserRole.USER:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only player users can pay with Stripe",
+            detail="Solo gli utenti player possono pagare con Stripe",
         )
 
     booking = session.get(Booking, payload.booking_id)
     if not booking:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prenotazione non trovata")
 
     if booking.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to pay this booking",
+            detail="Non autorizzato a pagare questa prenotazione",
         )
 
     if booking.is_blocked:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Blocked slots cannot be paid",
+            detail="Non puoi pagare slot bloccati",
         )
 
     if booking.payment_status != PaymentStatus.PENDING:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Booking has already been processed",
+            detail="Prenotazione già processata",
         )
 
     _configure_stripe()
@@ -95,7 +104,10 @@ async def stripe_webhook(
     stripe_signature: str | None = Header(default=None, alias="stripe-signature"),
     session: Session = Depends(get_session),
 ) -> None:
-    """Handle Stripe webhook events."""
+    """Gestisce i webhook Stripe, se abilitato."""
+    if not settings.payments_enabled:
+        raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Pagamenti disabilitati")
+
     _configure_stripe()
 
     payload = await request.body()
@@ -103,7 +115,7 @@ async def stripe_webhook(
     if not settings.stripe_webhook_secret:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Stripe webhook secret is not configured",
+            detail="Stripe webhook secret non configurato",
         )
 
     try:

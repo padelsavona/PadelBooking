@@ -2,6 +2,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+        # Feature flags
+        payments_enabled: bool = True
     """Application settings with environment variable support."""
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
