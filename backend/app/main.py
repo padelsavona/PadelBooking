@@ -8,7 +8,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from app.api import auth, bookings, courts, health, users
+from app.api import auth, bookings, courts, health, payments, users
 from app.core.config import settings
 from app.core.logging import get_logger, setup_logging
 
@@ -39,8 +39,8 @@ def get_application() -> FastAPI:
     # Configure CORS
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.cors_origins_list,
-        allow_credentials=True,
+        allow_origin_regex=r"^https://.*\.app\.github\.dev$",
+        allow_credentials=False,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -56,6 +56,7 @@ def get_application() -> FastAPI:
     app.include_router(users.router, prefix="/api/users", tags=["Users"])
     app.include_router(courts.router, prefix="/api/courts", tags=["Courts"])
     app.include_router(bookings.router, prefix="/api/bookings", tags=["Bookings"])
+    app.include_router(payments.router, prefix="/api/payments", tags=["Payments"])
 
     # Global exception handler
     @app.exception_handler(Exception)

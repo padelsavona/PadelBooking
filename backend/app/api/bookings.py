@@ -5,8 +5,8 @@ from sqlmodel import Session, and_, or_, select
 
 from app.api.auth import get_current_user
 from app.db.session import get_session
-from app.models import Booking, BookingStatus, Court, User, UserRole
-from app.schemas import BookingCreate, BookingResponse, BookingUpdate
+from app.models import Booking, BookingStatus, Court, PaymentStatus, User, UserRole
+from app.schemas import AdminBlockRequest, BookingCreate, BookingResponse, BookingUpdate
 
 router = APIRouter()
 
@@ -47,6 +47,35 @@ def check_court_availability(
     return conflicts is None
 
 
+def validate_booking_window(start_time: datetime, end_time: datetime) -> None:
+    """Validate window in same day and between 00:00 and 24:00."""
+    same_day = start_time.date() == end_time.date()
+    next_day_midnight = (
+        end_time.date() > start_time.date()
+        and (end_time.date() - start_time.date()).days == 1
+        and end_time.hour == 0
+        and end_time.minute == 0
+    )
+
+    if not (same_day or next_day_midnight):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Booking must start and end on the same day",
+        )
+
+    if start_time.hour < 0 or end_time.hour > 23:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Booking must be between 00:00 and 24:00",
+        )
+
+    if same_day and end_time.hour == 23 and end_time.minute > 59:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Booking must be between 00:00 and 24:00",
+        )
+
+
 @router.post("/", response_model=BookingResponse, status_code=status.HTTP_201_CREATED)
 async def create_booking(
     booking_data: BookingCreate,
@@ -54,6 +83,14 @@ async def create_booking(
     current_user: User = Depends(get_current_user),
 ) -> Booking:
     """Create a new booking."""
+    if current_user.role == UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admins must use block endpoint to reserve slots",
+        )
+
+    validate_booking_window(booking_data.start_time, booking_data.end_time)
+
     # Validate court exists and is active
     court = session.get(Court, booking_data.court_id)
     if not court or not court.is_active:
@@ -88,6 +125,7 @@ async def create_booking(
         user_id=current_user.id,
         total_price=total_price,
         status=BookingStatus.PENDING,
+        payment_status=PaymentStatus.PENDING,
     )
     session.add(booking)
     session.commit()
@@ -179,6 +217,9 @@ async def update_booking(
     new_start = booking_data.start_time or booking.start_time
     new_end = booking_data.end_time or booking.end_time
 
+    if booking_data.start_time or booking_data.end_time:
+        validate_booking_window(new_start, new_end)
+
     if (booking_data.start_time or booking_data.end_time) and not check_court_availability(
         session, booking.court_id, new_start, new_end, exclude_booking_id=booking_id
     ):
@@ -225,3 +266,47 @@ async def cancel_booking(
     booking.status = BookingStatus.CANCELLED
     session.add(booking)
     session.commit()
+
+
+@router.post("/block", response_model=BookingResponse, status_code=status.HTTP_201_CREATED)
+async def block_timeslot(
+    block_data: AdminBlockRequest,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_admin_or_manager),
+) -> Booking:
+    """Block a court timeslot (admin/manager only) without payment."""
+    validate_booking_window(block_data.start_time, block_data.end_time)
+
+    court = session.get(Court, block_data.court_id)
+    if not court or not court.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Court not found or inactive",
+        )
+
+    if not check_court_availability(
+        session,
+        block_data.court_id,
+        block_data.start_time,
+        block_data.end_time,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Court is not available for the selected time slot",
+        )
+
+    booking = Booking(
+        court_id=block_data.court_id,
+        start_time=block_data.start_time,
+        end_time=block_data.end_time,
+        notes=block_data.notes,
+        user_id=current_user.id,
+        total_price=0,
+        is_blocked=True,
+        status=BookingStatus.CONFIRMED,
+        payment_status=PaymentStatus.WAIVED,
+    )
+    session.add(booking)
+    session.commit()
+    session.refresh(booking)
+    return booking

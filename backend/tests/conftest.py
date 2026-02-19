@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.db.session import get_session
-from app.models import User
+from app.models import Court, User
 from app.core.security import get_password_hash
 
 
@@ -84,3 +84,42 @@ def auth_token_fixture(client: TestClient):
         data={"username": "auth@example.com", "password": "AuthPassword123"},
     )
     return response.json()["access_token"]
+
+
+@pytest.fixture(name="player_token")
+def player_token_fixture(client: TestClient):
+    """Get authentication token for standard player user."""
+    client.post(
+        "/api/auth/register",
+        json={
+            "email": "player@example.com",
+            "full_name": "Player User",
+            "password": "PlayerPass123",
+        },
+    )
+    response = client.post(
+        "/api/auth/login",
+        data={"username": "player@example.com", "password": "PlayerPass123"},
+    )
+    return response.json()["access_token"]
+
+
+@pytest.fixture(name="admin_token")
+def admin_token_fixture(client: TestClient, session: Session, admin_user: User):
+    """Get authentication token for admin user."""
+    del session  # already committed in admin_user fixture
+    response = client.post(
+        "/api/auth/login",
+        data={"username": admin_user.email, "password": "AdminPassword123"},
+    )
+    return response.json()["access_token"]
+
+
+@pytest.fixture(name="sample_court")
+def sample_court_fixture(session: Session):
+    """Create an active court for booking tests."""
+    court = Court(name="Test Court", hourly_rate=25.0, is_active=True)
+    session.add(court)
+    session.commit()
+    session.refresh(court)
+    return court

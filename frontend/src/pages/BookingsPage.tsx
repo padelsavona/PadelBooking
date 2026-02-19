@@ -60,7 +60,7 @@ function BookingsPage() {
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-medium text-gray-900">
-                        Booking #{booking.id} - Court {booking.court_id}
+                        Booking #{booking.id} - Court {booking.court_id ?? booking.court?.id ?? '—'}
                       </h3>
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}
@@ -69,6 +69,8 @@ function BookingsPage() {
                       </span>
                     </div>
                     <div className="mt-2 text-sm text-gray-600">
+                      <p>Type: {booking.is_blocked ? 'Blocked slot' : 'Player booking'}</p>
+                      <p>Payment: {booking.payment_status}</p>
                       <p>Start: {formatDate(booking.start_time)}</p>
                       <p>End: {formatDate(booking.end_time)}</p>
                       <p className="mt-1 font-semibold">Price: €{booking.total_price.toFixed(2)}</p>

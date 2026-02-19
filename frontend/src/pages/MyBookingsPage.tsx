@@ -65,7 +65,7 @@ export default function MyBookingsPage() {
                 new Date(booking.startTime) > new Date() && (
                   <div className="mt-4">
                     <button
-                      onClick={() => handleCancel(booking.id)}
+                      onClick={() => handleCancel(String(booking.id))}
                       className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
                     >
                       Cancel Booking

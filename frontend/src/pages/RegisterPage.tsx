@@ -26,7 +26,7 @@ export default function RegisterPage() {
 
     try {
       const { data } = await api.post<AuthResponse>('/auth/register', { name, email, password });
-      setAuth(data.user, data.token);
+      setAuth(data.user, data.token ?? data.access_token);
       navigate('/');
     } catch (err) {
       const error = err as { response?: { data?: { message?: string } } };

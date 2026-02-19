@@ -57,6 +57,14 @@ class BookingStatus(str, Enum):
     COMPLETED = "completed"
 
 
+class PaymentStatus(str, Enum):
+    """Payment status for bookings."""
+
+    PENDING = "pending"
+    PAID = "paid"
+    WAIVED = "waived"
+
+
 class Booking(SQLModel, table=True):
     """Booking model for court reservations."""
 
@@ -68,6 +76,9 @@ class Booking(SQLModel, table=True):
     start_time: datetime = Field(index=True)
     end_time: datetime = Field(index=True)
     status: BookingStatus = Field(default=BookingStatus.PENDING)
+    payment_status: PaymentStatus = Field(default=PaymentStatus.PENDING)
+    is_blocked: bool = Field(default=False)
+    stripe_session_id: Optional[str] = Field(default=None, max_length=255)
     total_price: float = Field(default=0.0)
     notes: Optional[str] = Field(default=None, max_length=500)
     created_at: datetime = Field(default_factory=datetime.utcnow)

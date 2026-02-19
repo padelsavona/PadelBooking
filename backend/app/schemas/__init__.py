@@ -3,7 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
-from app.models import BookingStatus, UserRole
+from app.models import BookingStatus, PaymentStatus, UserRole
 
 
 # User Schemas
@@ -104,6 +104,14 @@ class BookingBase(BaseModel):
             raise ValueError("end_time must be after start_time")
         return v
 
+    @field_validator("start_time", "end_time")
+    @classmethod
+    def validate_booking_boundaries(cls, v: datetime) -> datetime:
+        """Validate booking boundaries in 00:00-24:00 range."""
+        if v.minute % 30 != 0 or v.second != 0 or v.microsecond != 0:
+            raise ValueError("Booking times must be on 30-minute slots")
+        return v
+
 
 class BookingCreate(BookingBase):
     """Schema for booking creation."""
@@ -126,6 +134,9 @@ class BookingResponse(BookingBase):
     id: int
     user_id: int
     status: BookingStatus
+    payment_status: PaymentStatus
+    is_blocked: bool
+    stripe_session_id: Optional[str] = None
     total_price: float
     created_at: datetime
 
@@ -147,6 +158,27 @@ class TokenData(BaseModel):
     user_id: int
     email: str
     role: UserRole
+
+
+class CheckoutRequest(BaseModel):
+    """Create Stripe checkout session request."""
+
+    booking_id: int
+
+
+class CheckoutResponse(BaseModel):
+    """Create Stripe checkout session response."""
+
+    checkout_url: str
+
+
+class AdminBlockRequest(BaseModel):
+    """Admin request to block a court timeslot."""
+
+    court_id: int = Field(gt=0)
+    start_time: datetime
+    end_time: datetime
+    notes: Optional[str] = Field(default=None, max_length=500)
 
 
 # Error Response

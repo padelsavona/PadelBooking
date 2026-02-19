@@ -1,8 +1,13 @@
 import { useState } from 'react';
+import type { FormEvent } from 'react';
+import type { AxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { authService } from '../services/auth';
 import { useAuthStore } from '../stores/authStore';
+import { LoginRequest, RegisterRequest, TokenResponse, User } from '../types';
+
+type ApiError = AxiosError<{ detail?: string }>;
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -14,7 +19,7 @@ function LoginPage() {
     full_name: '',
   });
 
-  const loginMutation = useMutation({
+  const loginMutation = useMutation<TokenResponse, ApiError, LoginRequest>({
     mutationFn: authService.login,
     onSuccess: async (data) => {
       const user = await authService.getCurrentUser();
@@ -23,7 +28,7 @@ function LoginPage() {
     },
   });
 
-  const registerMutation = useMutation({
+  const registerMutation = useMutation<User, ApiError, RegisterRequest>({
     mutationFn: authService.register,
     onSuccess: () => {
       setIsRegister(false);
@@ -31,7 +36,7 @@ function LoginPage() {
     },
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (isRegister) {
@@ -118,7 +123,10 @@ function LoginPage() {
 
           {(loginMutation.error || registerMutation.error) && (
             <div className="text-red-600 text-sm text-center">
-              {loginMutation.error?.message || registerMutation.error?.message}
+              {loginMutation.error?.response?.data?.detail ||
+                registerMutation.error?.response?.data?.detail ||
+                loginMutation.error?.message ||
+                registerMutation.error?.message}
             </div>
           )}
 

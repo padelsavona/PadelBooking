@@ -3,7 +3,7 @@ import { Court } from '../types';
 
 export const courtService = {
   async getCourts(activeOnly = true): Promise<Court[]> {
-    const response = await api.get<Court[]>('/courts', {
+    const response = await api.get<Court[]>('/courts/', {
       params: { active_only: activeOnly },
     });
     return response.data;
