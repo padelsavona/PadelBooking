@@ -83,7 +83,14 @@ export default function AdminPage() {
                 <button
                   type="button"
                   disabled={toggleCourtStatus.isPending}
-                  onClick={() => handleToggleCourt(court.id, !court.is_active)}
+                  onClick={() => {
+                    const idNum = Number(court.id);
+                    if (!Number.isFinite(idNum)) {
+                      alert(`ID campo non valido: ${court.id}`);
+                      return;
+                    }
+                    handleToggleCourt(idNum, !court.is_active);
+                  }}
                   className={`px-3 py-2 text-sm rounded-md text-white disabled:opacity-50 ${
                     court.is_active ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
                   }`}
