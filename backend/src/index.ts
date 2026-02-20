@@ -21,8 +21,15 @@ const fastify = Fastify({
 });
 
 // Register plugins
+// the frontend URL(s) can be a comma-separated list –
+// for example `https://app.onrender.com,https://app-1.onrender.com`
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 await fastify.register(cors, {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: allowedOrigins,
   credentials: true,
 });
 
