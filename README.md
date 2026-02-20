@@ -42,12 +42,25 @@ Sistema di prenotazione campi padel full-stack.
        `CORS_ORIGINS`/`cors_origins` (per il server Python) per decidere quali
        origini sono autorizzate. Entrambi possono contenere una lista separata da
        virgole (es. `https://foo.onrender.com,https://foo-1.onrender.com`). Nel
-       deploy su Render è essenziale impostare l’URL del frontend su **entrambi**
-       i servizi: il servizio React ha bisogno di `VITE_API_BASE_URL` puntante al
-       dominio del backend e il servizio Python deve avere `CORS_ORIGINS` che
-       include il dominio della SPA. Assicurati che la lista contenga la stessa
-       host da cui viene caricata la SPA, altrimenti vedrai errori di tipo
-       "header CORS non corrisponde" come quelli mostrati nei log.
+       deploy su Render è essenziale impostare le variabili di ambiente su **entrambi**
+       i servizi:
+       * il servizio React ha bisogno di `VITE_API_BASE_URL` puntante al dominio
+         del backend;
+       * il servizio Python deve avere `CORS_ORIGINS` che include il dominio della SPA.
+       
+       Se dimentichi di impostare `CORS_ORIGINS`, il backend risponderà a ogni
+       richiesta con **200 ma senza `Access-Control-Allow-Origin`**, causando i
+       famosi messaggi "header CORS mancante" nel browser. Controlla i log di
+       avvio del backend: vengono visualizzate le origini attive (`CORS allowed origins: [...]`).
+       
+       ⚠️ **Attenzione al trailing slash** – `https://foo.com/` viene trattato in
+       modo diverso da `https://foo.com`. Per evitare problemi, il codice ora
+       normalizza le origini rimuovendo eventuali slash finali, ma è buona
+       norma impostare la variabile senza `/` finale durante la configurazione.
+       
+       Assicurati che la lista contenga la stessa host da cui viene caricata la
+       SPA, altrimenti vedrai errori di tipo "header CORS non corrisponde" come
+       quelli mostrati nei log.
 2. Avvia i servizi:
    - `docker-compose up -d`
 3. Esegui migrazioni backend:

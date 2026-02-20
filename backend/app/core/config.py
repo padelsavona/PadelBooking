@@ -44,8 +44,23 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins_list(self) -> list[str]:
-        """Parse CORS origins from comma-separated string."""
-        return [origin.strip() for origin in self.cors_origins.split(",")]
+        """Parse CORS origins from comma-separated string.
+
+        Each origin is stripped of whitespace **and** any trailing slash.  The
+        FastAPI middleware compares the value *exactly* with the request
+        `Origin` header, so a stray `/` at the end would prevent a match.  An
+        empty entry (e.g. because the string ends with a comma) is ignored.
+        """
+        origins: list[str] = []
+        for origin in self.cors_origins.split(","):
+            o = origin.strip()
+            if not o:
+                continue
+            # remove trailing slash; `https://foo.com/` != `https://foo.com`
+            if o.endswith("/"):
+                o = o[:-1]
+            origins.append(o)
+        return origins
 
 
 settings = Settings()

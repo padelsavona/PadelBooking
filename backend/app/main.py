@@ -38,6 +38,7 @@ def get_application() -> FastAPI:
 
     # Configure CORS
     # use the comma-separated list from settings, this supports multiple domains
+    logger.info(f"CORS allowed origins: {settings.cors_origins_list}")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins_list,
