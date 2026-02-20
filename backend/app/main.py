@@ -37,10 +37,11 @@ def get_application() -> FastAPI:
     )
 
     # Configure CORS
+    # use the comma-separated list from settings, this supports multiple domains
     app.add_middleware(
         CORSMiddleware,
-        allow_origin_regex=r"^https://.*\.app\.github\.dev$",
-        allow_credentials=False,
+        allow_origins=settings.cors_origins_list,
+        allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
