@@ -107,8 +107,8 @@ export default function AdminPage() {
 
   const [newCourtName, setNewCourtName] = useState('');
   const [newCourtDescription, setNewCourtDescription] = useState('');
-  const [newCourtPrice, setNewCourtPrice] = useState('25');
-  const [newCourtMemberPrice, setNewCourtMemberPrice] = useState('20');
+  const [newCourtPrice, setNewCourtPrice] = useState('40');
+  const [newCourtMemberPrice, setNewCourtMemberPrice] = useState('32');
 
   const [adminUserEmail, setAdminUserEmail] = useState('');
   const [adminCourtId, setAdminCourtId] = useState('');
@@ -174,8 +174,8 @@ export default function AdminPage() {
       });
       setNewCourtName('');
       setNewCourtDescription('');
-      setNewCourtPrice('25');
-      setNewCourtMemberPrice('20');
+      setNewCourtPrice('40');
+      setNewCourtMemberPrice('32');
       setMessage('Campo creato con successo.');
     } catch (err) {
       const error = err as { response?: { data?: { detail?: string; message?: string } } };
@@ -338,6 +338,11 @@ export default function AdminPage() {
 
       <div className="mb-8 bg-white p-6 rounded-lg shadow-lg">
         <h2 className="text-xl font-bold mb-4">Campi e prezzi</h2>
+        <div className="mb-4 rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
+          <p className="font-medium">Tariffe configurate:</p>
+          <p>Tesserati: 1h €32 · 1h30 €40 · 2h €60</p>
+          <p>Non tesserati: 1h €40 · 1h30 €52 · 2h €80</p>
+        </div>
 
         <form onSubmit={handleCreateCourt} className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-6">
           <input
@@ -355,26 +360,36 @@ export default function AdminPage() {
             onChange={(e) => setNewCourtDescription(e.target.value)}
             className="border rounded-md px-3 py-2"
           />
-          <input
-            type="number"
-            min="1"
-            step="0.5"
-            placeholder="Prezzo €/ora"
-            value={newCourtPrice}
-            onChange={(e) => setNewCourtPrice(e.target.value)}
-            className="border rounded-md px-3 py-2"
-            required
-          />
-          <input
-            type="number"
-            min="1"
-            step="0.5"
-            placeholder="Prezzo tesserati €/ora"
-            value={newCourtMemberPrice}
-            onChange={(e) => setNewCourtMemberPrice(e.target.value)}
-            className="border rounded-md px-3 py-2"
-            required
-          />
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Prezzo non tesserati 1 ora (es. 40)
+            </label>
+            <input
+              type="number"
+              min="1"
+              step="0.5"
+              placeholder="40"
+              value={newCourtPrice}
+              onChange={(e) => setNewCourtPrice(e.target.value)}
+              className="border rounded-md px-3 py-2 w-full"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Prezzo tesserati 1 ora (es. 32)
+            </label>
+            <input
+              type="number"
+              min="1"
+              step="0.5"
+              placeholder="32"
+              value={newCourtMemberPrice}
+              onChange={(e) => setNewCourtMemberPrice(e.target.value)}
+              className="border rounded-md px-3 py-2 w-full"
+              required
+            />
+          </div>
           <button
             type="submit"
             disabled={createCourt.isPending}

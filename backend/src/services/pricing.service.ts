@@ -74,7 +74,7 @@ export const getPricingQuote = async (params: {
     membershipExpiresAt: user?.membershipExpiresAt,
   });
 
-  const totalPrice = Number((hourlyRate * durationHours).toFixed(2));
+  const totalPrice = calculateTotalPriceByDuration(hourlyRate, durationHours, tariffType);
 
   return {
     courtId: court.id,
@@ -86,4 +86,32 @@ export const getPricingQuote = async (params: {
     tariffType,
     tariffLabel: tariffType === 'MEMBER' ? 'Tariffa tesserati' : 'Tariffa standard',
   };
+};
+
+export const calculateTotalPriceByDuration = (
+  hourlyRate: number,
+  durationHours: number,
+  tariffType: 'MEMBER' | 'STANDARD'
+): number => {
+  const roundedDuration = Number(durationHours.toFixed(2));
+
+  const multipliers =
+    tariffType === 'MEMBER'
+      ? {
+          1: 1,
+          1.5: 1.25,
+          2: 1.875,
+        }
+      : {
+          1: 1,
+          1.5: 1.3,
+          2: 2,
+        };
+
+  const multiplier = multipliers[roundedDuration as keyof typeof multipliers];
+  if (multiplier) {
+    return Number((hourlyRate * multiplier).toFixed(2));
+  }
+
+  return Number((hourlyRate * durationHours).toFixed(2));
 };

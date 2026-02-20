@@ -74,7 +74,11 @@ export const authService = {
   },
 
   async register(data: RegisterRequest): Promise<User> {
-    const response = await api.post<User>('/auth/register', data);
+    const response = await api.post<User>('/auth/register', {
+      email: data.email,
+      password: data.password,
+      name: data.full_name,
+    });
     return normalizeUserResponse(response.data as unknown as Partial<User> & Record<string, unknown>);
   },
 

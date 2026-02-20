@@ -34,8 +34,8 @@ async function seed() {
       id: '00000000-0000-0000-0000-000000000001',
       name: 'Campo Centrale',
       description: 'Campo principale con illuminazione LED',
-      pricePerHour: 30.0,
-      memberPricePerHour: 24.0,
+      pricePerHour: 40.0,
+      memberPricePerHour: 32.0,
     },
   });
 
@@ -46,8 +46,8 @@ async function seed() {
       id: '00000000-0000-0000-0000-000000000002',
       name: 'Campo 2',
       description: 'Campo coperto',
-      pricePerHour: 25.0,
-      memberPricePerHour: 20.0,
+      pricePerHour: 40.0,
+      memberPricePerHour: 32.0,
     },
   });
 

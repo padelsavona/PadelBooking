@@ -1,7 +1,7 @@
 import prisma from '../db.js';
 import { AppError } from '../errors.js';
 import { getCourtById } from './court.service.js';
-import { getHourlyRateForUser } from './pricing.service.js';
+import { getHourlyRateForUser, calculateTotalPriceByDuration } from './pricing.service.js';
 
 export const checkBookingConflict = async (
   courtId: string,
@@ -83,7 +83,8 @@ export const createBooking = async (
     membershipExpiresAt: user.membershipExpiresAt,
   });
 
-  const totalPrice = calculateBookingPrice(hourlyRate, startTime, endTime);
+  const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+  const totalPrice = calculateTotalPriceByDuration(hourlyRate, durationHours, 'MEMBER' === user.membershipStatus ? 'MEMBER' : 'STANDARD');
 
   // Create booking
   const booking = await prisma.booking.create({
@@ -263,7 +264,12 @@ export const updateBookingAsAdmin = async (
     membershipExpiresAt: bookingUser?.membershipExpiresAt,
   });
 
-  const totalPrice = calculateBookingPrice(hourlyRate, nextStartTime, nextEndTime);
+  const durationHours = (nextEndTime.getTime() - nextStartTime.getTime()) / (1000 * 60 * 60);
+  const totalPrice = calculateTotalPriceByDuration(
+    hourlyRate,
+    durationHours,
+    'MEMBER' === bookingUser?.membershipStatus ? 'MEMBER' : 'STANDARD'
+  );
 
   return prisma.booking.update({
     where: { id: bookingId },

@@ -7,7 +7,12 @@ import { authenticate } from '../middleware/auth.middleware.js';
 export default async function authRoutes(fastify: FastifyInstance) {
   // Register
   fastify.post('/register', async (request) => {
-    const body = registerSchema.parse(request.body);
+    const rawBody = request.body as Record<string, unknown>;
+    const body = registerSchema.parse({
+      email: rawBody.email,
+      password: rawBody.password,
+      name: rawBody.name ?? rawBody.full_name,
+    });
     const user = await createUser(body.email, body.password, body.name);
     const token = fastify.jwt.sign({ id: user.id, email: user.email, role: user.role });
     return { user, token };
