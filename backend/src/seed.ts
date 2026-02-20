@@ -6,31 +6,25 @@ async function seed() {
   console.log('Seeding database...');
 
   // Create admin user
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@padelbooking.com';
-  const adminPassword = process.env.ADMIN_PASSWORD;
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@padelsavona.it';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'PadelSavonaAdmin2026!';
 
-  if (!adminPassword) {
-    console.error('ADMIN_PASSWORD environment variable is required for seeding');
-    process.exit(1);
-  }
-
-  const existingAdmin = await prisma.user.findUnique({
+  await prisma.user.upsert({
     where: { email: adminEmail },
+    update: {
+      password: await hashPassword(adminPassword),
+      name: 'Admin',
+      role: 'ADMIN',
+    },
+    create: {
+      email: adminEmail,
+      password: await hashPassword(adminPassword),
+      name: 'Admin',
+      role: 'ADMIN',
+    },
   });
 
-  if (!existingAdmin) {
-    await prisma.user.create({
-      data: {
-        email: adminEmail,
-        password: await hashPassword(adminPassword),
-        name: 'Admin',
-        role: 'ADMIN',
-      },
-    });
-    console.log(`Admin user created: ${adminEmail}`);
-  } else {
-    console.log('Admin user already exists');
-  }
+  console.log(`Admin user pronto: ${adminEmail}`);
 
   // Create sample courts
   await prisma.court.upsert({
