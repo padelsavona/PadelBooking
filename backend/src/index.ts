@@ -74,26 +74,3 @@ const start = async () => {
 
 start();
 
-fastify.post('/admin/seed', async (request, reply) => {
-  // Proteggi con una password o token temporaneo!
-  if (request.headers['x-seed-key'] !== 'seed-12345') {
-    reply.status(403).send({ error: 'Accesso negato' });
-    return;
-  }
-  const { PrismaClient } = await import('@prisma/client');
-  const prisma = new PrismaClient();
-  const exists = await prisma.court.findFirst();
-  if (exists) {
-    await prisma.$disconnect();
-    return { status: 'già popolato' };
-  }
-  await prisma.court.create({
-    data: {
-      name: 'Campo 1',
-      isActive: true,
-      pricePerHour: 20.00,
-    },
-  });
-  await prisma.$disconnect();
-  return { status: 'ok' };
-});
