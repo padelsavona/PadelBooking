@@ -18,7 +18,7 @@ export const getCourtById = async (id: string) => {
 
 export const createCourt = async (data: {
   name: string;
-  description?: string;
+  description?: string | null;
   pricePerHour: number;
   memberPricePerHour?: number;
 }) => {
@@ -34,7 +34,7 @@ export const updateCourt = async (
   id: string,
   data: {
     name?: string;
-    description?: string;
+    description?: string | null;
     pricePerHour?: number;
     memberPricePerHour?: number;
     isActive?: boolean;
