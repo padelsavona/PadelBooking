@@ -10,6 +10,7 @@ async function main() {
     data: {
       name: "Campo 1",
       isActive: true,
+      pricePerHour: 20.00,
     },
   });
 }

@@ -91,6 +91,7 @@ fastify.post('/admin/seed', async (request, reply) => {
     data: {
       name: 'Campo 1',
       isActive: true,
+      pricePerHour: 20.00,
     },
   });
   await prisma.$disconnect();
