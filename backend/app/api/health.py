@@ -12,8 +12,19 @@ router = APIRouter()
 
 @router.get("/health")
 async def health() -> dict[str, str]:
-    """Health check endpoint."""
-    return {"status": "healthy", "service": settings.app_name, "version": settings.app_version}
+    """Health check endpoint.
+
+    For debugging deployments we also return the configured CORS origins so
+    that you can verify which values the service is using.  This does not
+    expose any secrets (the list is public), but it’s helpful when tracking
+    down missing headers in production.
+    """
+    return {
+        "status": "healthy",
+        "service": settings.app_name,
+        "version": settings.app_version,
+        "cors_origins": settings.cors_origins_list,
+    }
 
 
 @router.get("/ready")

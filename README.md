@@ -48,10 +48,14 @@ Sistema di prenotazione campi padel full-stack.
          del backend;
        * il servizio Python deve avere `CORS_ORIGINS` che include il dominio della SPA.
        
-       Se dimentichi di impostare `CORS_ORIGINS`, il backend risponderà a ogni
-       richiesta con **200 ma senza `Access-Control-Allow-Origin`**, causando i
-       famosi messaggi "header CORS mancante" nel browser. Controlla i log di
-       avvio del backend: vengono visualizzate le origini attive (`CORS allowed origins: [...]`).
+       Il codice Python supporta anche la vecchia variabile `CORS_ORIGIN` (singolare);
+       se la inserisci per errore viene automaticamente utilizzata come fallback.
+       
+       Se dimentichi di impostare `CORS_ORIGINS`/`CORS_ORIGIN`, il backend
+       risponderà a ogni richiesta con **200 ma senza `Access-Control-Allow-Origin`**,
+       causando i famosi messaggi "header CORS mancante" nel browser. Controlla i
+       log di avvio del backend: vengono visualizzate le origini attive
+       (`CORS allowed origins: [...]`).
        
        ⚠️ **Attenzione al trailing slash** – `https://foo.com/` viene trattato in
        modo diverso da `https://foo.com`. Per evitare problemi, il codice ora
