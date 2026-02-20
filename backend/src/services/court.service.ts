@@ -20,6 +20,7 @@ export const createCourt = async (data: {
   name: string;
   description?: string;
   pricePerHour: number;
+  memberPricePerHour?: number;
 }) => {
   return prisma.court.create({
     data: {
@@ -35,6 +36,7 @@ export const updateCourt = async (
     name?: string;
     description?: string;
     pricePerHour?: number;
+    memberPricePerHour?: number;
     isActive?: boolean;
   }
 ) => {

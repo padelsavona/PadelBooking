@@ -8,6 +8,8 @@ import authRoutes from './routes/auth.routes.js';
 import courtRoutes from './routes/court.routes.js';
 import bookingRoutes from './routes/booking.routes.js';
 import paymentRoutes from './routes/payment.routes.js';
+import pricingRoutes from './routes/pricing.routes.js';
+import userRoutes from './routes/user.routes.js';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const HOST = process.env.HOST || '0.0.0.0';
@@ -57,6 +59,8 @@ await fastify.register(authRoutes, { prefix: '/api/auth' });
 await fastify.register(courtRoutes, { prefix: '/api/courts' });
 await fastify.register(bookingRoutes, { prefix: '/api/bookings' });
 await fastify.register(paymentRoutes, { prefix: '/api/payments' });
+await fastify.register(pricingRoutes, { prefix: '/api/pricing' });
+await fastify.register(userRoutes, { prefix: '/api/users' });
 
 // Error handler
 fastify.setErrorHandler(errorHandler);

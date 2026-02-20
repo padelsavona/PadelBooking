@@ -22,7 +22,14 @@ export const createUser = async (email: string, password: string, name: string, 
   const hashedPassword = await hashPassword(password);
   return prisma.user.create({
     data: { email, password: hashedPassword, name, role },
-    select: { id: true, email: true, name: true, role: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      membershipStatus: true,
+      membershipExpiresAt: true,
+    },
   });
 };
 
@@ -33,6 +40,13 @@ export const findUserByEmail = async (email: string) => {
 export const findUserById = async (id: string) => {
   return prisma.user.findUnique({
     where: { id },
-    select: { id: true, email: true, name: true, role: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      membershipStatus: true,
+      membershipExpiresAt: true,
+    },
   });
 };

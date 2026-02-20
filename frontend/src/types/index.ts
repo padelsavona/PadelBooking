@@ -10,10 +10,12 @@ export type BookingStatus =
   | 'COMPLETED';
 
 export interface User {
-  id: number;
+  id: number | string;
   email: string;
   full_name: string;
   role: UserRole;
+  membership_status?: 'MEMBER' | 'NON_MEMBER';
+  membership_expires_at?: string | null;
   is_active: boolean;
   created_at: string;
   name?: string; // compat con Navbar
@@ -25,6 +27,7 @@ export interface Court {
   description?: string;
   is_active: boolean;
   hourly_rate: number;
+  member_hourly_rate?: number;
   price_per_hour?: number;
   pricePerHour?: number; // compat con BookingForm
   created_at: string;

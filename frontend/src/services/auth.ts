@@ -20,6 +20,28 @@ const normalizeTokenResponse = (data: LoginApiResponse): TokenResponse => {
   };
 };
 
+const normalizeUserResponse = (raw: Partial<User> & Record<string, unknown>): User => {
+  return {
+    id: (raw.id as number | string) ?? '',
+    email: String(raw.email ?? ''),
+    full_name: String(raw.full_name ?? raw.name ?? ''),
+    role: String(raw.role ?? 'user') as User['role'],
+    membership_status: (raw.membership_status as User['membership_status']) ??
+      (raw.membershipStatus as User['membership_status']) ??
+      'NON_MEMBER',
+    membership_expires_at:
+      (raw.membership_expires_at as string | null | undefined) ??
+      (raw.membershipExpiresAt as string | null | undefined) ??
+      null,
+    is_active: (raw.is_active as boolean | undefined) ?? true,
+    created_at:
+      (raw.created_at as string | undefined) ??
+      (raw.createdAt as string | undefined) ??
+      new Date().toISOString(),
+    name: String(raw.name ?? raw.full_name ?? ''),
+  };
+};
+
 export const authService = {
   async login(data: LoginRequest): Promise<TokenResponse> {
     const email = data.email ?? data.username;
@@ -53,7 +75,7 @@ export const authService = {
 
   async register(data: RegisterRequest): Promise<User> {
     const response = await api.post<User>('/auth/register', data);
-    return response.data;
+    return normalizeUserResponse(response.data as unknown as Partial<User> & Record<string, unknown>);
   },
 
   async getCurrentUser(token?: string): Promise<User> {
@@ -61,10 +83,10 @@ export const authService = {
 
     try {
       const response = await api.get<User>('/users/me', { headers });
-      return response.data;
+      return normalizeUserResponse(response.data as unknown as Partial<User> & Record<string, unknown>);
     } catch {
       const response = await api.get<User>('/auth/me', { headers });
-      return response.data;
+      return normalizeUserResponse(response.data as unknown as Partial<User> & Record<string, unknown>);
     }
   },
 };

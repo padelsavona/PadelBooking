@@ -1,6 +1,7 @@
 import prisma from '../db.js';
 import { AppError } from '../errors.js';
 import { getCourtById } from './court.service.js';
+import { getHourlyRateForUser } from './pricing.service.js';
 
 export const checkBookingConflict = async (
   courtId: string,
@@ -59,6 +60,15 @@ export const createBooking = async (
   // Check court exists
   const court = await getCourtById(courtId);
 
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { membershipStatus: true, membershipExpiresAt: true },
+  });
+
+  if (!user) {
+    throw new AppError(404, 'User not found', 'USER_NOT_FOUND');
+  }
+
   // Check for conflicts
   const hasConflict = await checkBookingConflict(courtId, startTime, endTime);
   if (hasConflict) {
@@ -66,7 +76,14 @@ export const createBooking = async (
   }
 
   // Calculate price
-  const totalPrice = calculateBookingPrice(Number(court.pricePerHour), startTime, endTime);
+  const { hourlyRate } = getHourlyRateForUser({
+    pricePerHour: Number(court.pricePerHour),
+    memberPricePerHour: court.memberPricePerHour ? Number(court.memberPricePerHour) : null,
+    membershipStatus: user.membershipStatus,
+    membershipExpiresAt: user.membershipExpiresAt,
+  });
+
+  const totalPrice = calculateBookingPrice(hourlyRate, startTime, endTime);
 
   // Create booking
   const booking = await prisma.booking.create({
@@ -234,7 +251,19 @@ export const updateBookingAsAdmin = async (
   }
 
   const court = await getCourtById(nextCourtId);
-  const totalPrice = calculateBookingPrice(Number(court.pricePerHour), nextStartTime, nextEndTime);
+  const bookingUser = await prisma.user.findUnique({
+    where: { id: booking.userId },
+    select: { membershipStatus: true, membershipExpiresAt: true },
+  });
+
+  const { hourlyRate } = getHourlyRateForUser({
+    pricePerHour: Number(court.pricePerHour),
+    memberPricePerHour: court.memberPricePerHour ? Number(court.memberPricePerHour) : null,
+    membershipStatus: bookingUser?.membershipStatus,
+    membershipExpiresAt: bookingUser?.membershipExpiresAt,
+  });
+
+  const totalPrice = calculateBookingPrice(hourlyRate, nextStartTime, nextEndTime);
 
   return prisma.booking.update({
     where: { id: bookingId },

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { courtService } from '../services/courts';
 import { bookingService } from '../services/bookings';
 import { useAuthStore } from '../stores/authStore';
+import { pricingService } from '../services/pricing';
 
 function HomePage() {
   const queryClient = useQueryClient();
@@ -50,6 +51,29 @@ function HomePage() {
     refetchInterval: 15000,
   });
 
+  const toIsoDateTime = (selectedDate: string, selectedTime: string): string => {
+    if (selectedTime === '24:00') {
+      const nextDay = new Date(`${selectedDate}T00:00:00`);
+      nextDay.setDate(nextDay.getDate() + 1);
+      return nextDay.toISOString();
+    }
+    return new Date(`${selectedDate}T${selectedTime}:00`).toISOString();
+  };
+
+  const startQuoteIso = useMemo(() => toIsoDateTime(date, startTime), [date, startTime]);
+  const endQuoteIso = useMemo(() => toIsoDateTime(date, endTime), [date, endTime]);
+
+  const { data: pricingQuote, isLoading: isPricingLoading } = useQuery({
+    queryKey: ['pricingQuote', courtId, startQuoteIso, endQuoteIso, user?.id],
+    queryFn: () =>
+      pricingService.getQuote({
+        courtId: String(courtId),
+        start: startQuoteIso,
+        end: endQuoteIso,
+      }),
+    enabled: Boolean(courtId && date),
+  });
+
   const createBookingMutation = useMutation({
     mutationFn: bookingService.createBooking,
   });
@@ -67,15 +91,6 @@ function HomePage() {
     options.push('24:00');
     return options;
   }, []);
-
-  const toIsoDateTime = (selectedDate: string, selectedTime: string): string => {
-    if (selectedTime === '24:00') {
-      const nextDay = new Date(`${selectedDate}T00:00:00`);
-      nextDay.setDate(nextDay.getDate() + 1);
-      return nextDay.toISOString();
-    }
-    return new Date(`${selectedDate}T${selectedTime}:00`).toISOString();
-  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -134,6 +149,14 @@ function HomePage() {
         Prenota i campi tra le 00:00 e le 24:00. Gli utenti devono essere autenticati per creare una
         partita; gli amministratori possono bloccare fasce orarie.
       </p>
+
+      {user ? (
+        <div className="mb-6 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          {user.membership_status === 'MEMBER'
+            ? 'Sei tesserato SSD: tariffa agevolata attiva ✅'
+            : 'Tariffa standard attiva'}
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
@@ -286,6 +309,22 @@ function HomePage() {
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
               />
+            </div>
+
+            <div className="border rounded-md p-3 bg-blue-50 text-sm text-blue-900">
+              {isPricingLoading ? (
+                <p>Calcolo prezzo in corso...</p>
+              ) : pricingQuote ? (
+                <>
+                  <p className="font-semibold">{pricingQuote.tariffLabel}</p>
+                  <p>
+                    Prezzo orario: €{pricingQuote.hourlyRate.toFixed(2)} · Totale: €
+                    {pricingQuote.totalPrice.toFixed(2)}
+                  </p>
+                </>
+              ) : (
+                <p>Prezzo non disponibile.</p>
+              )}
             </div>
 
             {message && <div className="text-sm text-red-600">{message}</div>}

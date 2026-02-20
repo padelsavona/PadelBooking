@@ -49,12 +49,14 @@ export const createCourtSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   pricePerHour: z.number().positive(),
+  memberPricePerHour: z.number().positive().optional(),
 });
 
 export const updateCourtSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().optional(),
   pricePerHour: z.number().positive().optional(),
+  memberPricePerHour: z.number().positive().optional(),
   isActive: z.boolean().optional(),
 });
 

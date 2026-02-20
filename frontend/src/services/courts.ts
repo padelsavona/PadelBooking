@@ -5,6 +5,7 @@ type CourtApi = Partial<Court> & {
   id: number | string;
   isActive?: boolean;
   pricePerHour?: number;
+  memberPricePerHour?: number;
 };
 
 type BookingApi = {
@@ -20,6 +21,7 @@ const normalizeCourt = (court: CourtApi): Court => ({
   description: court.description,
   is_active: court.is_active ?? court.isActive ?? true,
   hourly_rate: court.hourly_rate ?? court.pricePerHour ?? 0,
+  member_hourly_rate: court.member_hourly_rate ?? court.memberPricePerHour,
   created_at: court.created_at || new Date().toISOString(),
 });
 
@@ -99,11 +101,17 @@ export const courtService = {
     }
   },
 
-  async updateCourt(id: number | string, data: Partial<Pick<Court, 'name' | 'description' | 'hourly_rate' | 'is_active'>>): Promise<Court> {
+  async updateCourt(
+    id: number | string,
+    data: Partial<Pick<Court, 'name' | 'description' | 'hourly_rate' | 'member_hourly_rate' | 'is_active'>>
+  ): Promise<Court> {
     const payload = {
       ...(data.name !== undefined ? { name: data.name } : {}),
       ...(data.description !== undefined ? { description: data.description } : {}),
       ...(data.hourly_rate !== undefined ? { hourly_rate: data.hourly_rate, pricePerHour: data.hourly_rate } : {}),
+      ...(data.member_hourly_rate !== undefined
+        ? { member_hourly_rate: data.member_hourly_rate, memberPricePerHour: data.member_hourly_rate }
+        : {}),
       ...(data.is_active !== undefined ? { is_active: data.is_active, isActive: data.is_active } : {}),
     };
 
@@ -111,11 +119,12 @@ export const courtService = {
     return normalizeCourt(response.data);
   },
 
-  async createCourt(data: Pick<Court, 'name' | 'description' | 'hourly_rate'>): Promise<Court> {
+  async createCourt(data: Pick<Court, 'name' | 'description' | 'hourly_rate' | 'member_hourly_rate'>): Promise<Court> {
     const response = await api.post<CourtApi>('/courts', {
       name: data.name,
       description: data.description,
       pricePerHour: data.hourly_rate,
+      memberPricePerHour: data.member_hourly_rate,
     });
     return normalizeCourt(response.data);
   },

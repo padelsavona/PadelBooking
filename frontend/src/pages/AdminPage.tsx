@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { courtService } from '../services/courts';
 import { bookingService } from '../services/bookings';
 import { Booking } from '../types';
+import { userService } from '../services/users';
 
 export default function AdminPage() {
   const queryClient = useQueryClient();
@@ -16,6 +17,11 @@ export default function AdminPage() {
   const { data: bookings = [] } = useQuery({
     queryKey: ['admin-bookings'],
     queryFn: bookingService.getBookings,
+  });
+
+  const { data: users = [] } = useQuery({
+    queryKey: ['admin-users'],
+    queryFn: userService.listUsers,
   });
 
   const createCourt = useMutation({
@@ -41,12 +47,14 @@ export default function AdminPage() {
       name,
       description,
       hourly_rate,
+      member_hourly_rate,
     }: {
       id: number | string;
       name: string;
       description?: string;
       hourly_rate: number;
-    }) => courtService.updateCourt(id, { name, description, hourly_rate }),
+      member_hourly_rate?: number;
+    }) => courtService.updateCourt(id, { name, description, hourly_rate, member_hourly_rate }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-courts'] });
       queryClient.invalidateQueries({ queryKey: ['courts'] });
@@ -90,9 +98,17 @@ export default function AdminPage() {
     },
   });
 
+  const updateUserMembership = useMutation({
+    mutationFn: userService.updateMembership,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    },
+  });
+
   const [newCourtName, setNewCourtName] = useState('');
   const [newCourtDescription, setNewCourtDescription] = useState('');
   const [newCourtPrice, setNewCourtPrice] = useState('25');
+  const [newCourtMemberPrice, setNewCourtMemberPrice] = useState('20');
 
   const [adminUserEmail, setAdminUserEmail] = useState('');
   const [adminCourtId, setAdminCourtId] = useState('');
@@ -112,7 +128,7 @@ export default function AdminPage() {
     status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'BLOCKED';
   }>>({});
 
-  const [courtEdits, setCourtEdits] = useState<Record<string, { name: string; description: string; hourly_rate: string }>>({});
+  const [courtEdits, setCourtEdits] = useState<Record<string, { name: string; description: string; hourly_rate: string; member_hourly_rate: string }>>({});
 
   const toIso = (date: string, time: string) => new Date(`${date}T${time}:00`).toISOString();
   const toLocalInputValue = (value?: string) => {
@@ -154,10 +170,12 @@ export default function AdminPage() {
         name: newCourtName.trim(),
         description: newCourtDescription.trim() || undefined,
         hourly_rate: Number(newCourtPrice),
+        member_hourly_rate: Number(newCourtMemberPrice),
       });
       setNewCourtName('');
       setNewCourtDescription('');
       setNewCourtPrice('25');
+      setNewCourtMemberPrice('20');
       setMessage('Campo creato con successo.');
     } catch (err) {
       const error = err as { response?: { data?: { detail?: string; message?: string } } };
@@ -194,8 +212,8 @@ export default function AdminPage() {
     }
   };
 
-  const updateCourtEdit = (id: string, field: 'name' | 'description' | 'hourly_rate', value: string) => {
-    const current = courtEdits[id] || { name: '', description: '', hourly_rate: '' };
+  const updateCourtEdit = (id: string, field: 'name' | 'description' | 'hourly_rate' | 'member_hourly_rate', value: string) => {
+    const current = courtEdits[id] || { name: '', description: '', hourly_rate: '', member_hourly_rate: '' };
     setCourtEdits((prev) => ({
       ...prev,
       [id]: {
@@ -205,7 +223,10 @@ export default function AdminPage() {
     }));
   };
 
-  const saveCourt = async (id: string, fallback: { name: string; description?: string; hourly_rate: number }) => {
+  const saveCourt = async (
+    id: string,
+    fallback: { name: string; description?: string; hourly_rate: number; member_hourly_rate?: number }
+  ) => {
     const draft = courtEdits[id];
 
     try {
@@ -214,6 +235,7 @@ export default function AdminPage() {
         name: draft?.name || fallback.name,
         description: draft?.description || fallback.description,
         hourly_rate: Number(draft?.hourly_rate || fallback.hourly_rate),
+        member_hourly_rate: Number(draft?.member_hourly_rate || fallback.member_hourly_rate || fallback.hourly_rate),
       });
       setMessage('Campo aggiornato con successo.');
     } catch (err) {
@@ -291,6 +313,24 @@ export default function AdminPage() {
     }
   };
 
+  const handleMembershipUpdate = async (
+    email: string,
+    membershipStatus: 'MEMBER' | 'NON_MEMBER',
+    membershipExpiresAt?: string | null
+  ) => {
+    try {
+      await updateUserMembership.mutateAsync({
+        email,
+        membershipStatus,
+        membershipExpiresAt: membershipExpiresAt || null,
+      });
+      setMessage('Stato tesseramento aggiornato con successo.');
+    } catch (err) {
+      const error = err as { response?: { data?: { detail?: string; message?: string } } };
+      setMessage(error.response?.data?.detail || error.response?.data?.message || 'Aggiornamento tesseramento non riuscito.');
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Pannello amministratore</h1>
@@ -299,7 +339,7 @@ export default function AdminPage() {
       <div className="mb-8 bg-white p-6 rounded-lg shadow-lg">
         <h2 className="text-xl font-bold mb-4">Campi e prezzi</h2>
 
-        <form onSubmit={handleCreateCourt} className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+        <form onSubmit={handleCreateCourt} className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-6">
           <input
             type="text"
             placeholder="Nome campo"
@@ -325,6 +365,16 @@ export default function AdminPage() {
             className="border rounded-md px-3 py-2"
             required
           />
+          <input
+            type="number"
+            min="1"
+            step="0.5"
+            placeholder="Prezzo tesserati €/ora"
+            value={newCourtMemberPrice}
+            onChange={(e) => setNewCourtMemberPrice(e.target.value)}
+            className="border rounded-md px-3 py-2"
+            required
+          />
           <button
             type="submit"
             disabled={createCourt.isPending}
@@ -340,7 +390,7 @@ export default function AdminPage() {
           ) : (
             courts.map((court) => (
               <div key={court.id} className="border rounded-md p-3">
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-2 items-center">
+                <div className="grid grid-cols-1 md:grid-cols-6 gap-2 items-center">
                   <input
                     type="text"
                     defaultValue={court.name}
@@ -361,6 +411,14 @@ export default function AdminPage() {
                     onChange={(e) => updateCourtEdit(String(court.id), 'hourly_rate', e.target.value)}
                     className="border rounded-md px-2 py-1"
                   />
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.5"
+                    defaultValue={court.member_hourly_rate ?? court.hourly_rate}
+                    onChange={(e) => updateCourtEdit(String(court.id), 'member_hourly_rate', e.target.value)}
+                    className="border rounded-md px-2 py-1"
+                  />
                   <button
                     type="button"
                     disabled={updateCourt.isPending}
@@ -369,6 +427,7 @@ export default function AdminPage() {
                         name: court.name,
                         description: court.description,
                         hourly_rate: court.hourly_rate,
+                        member_hourly_rate: court.member_hourly_rate,
                       })
                     }
                     className="px-3 py-2 text-sm rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
@@ -400,6 +459,64 @@ export default function AdminPage() {
             ))
           )}
         </div>
+      </div>
+
+      <div className="mb-8 bg-white p-6 rounded-lg shadow-lg">
+        <h2 className="text-xl font-bold mb-4">Tesseramento utenti</h2>
+
+        {users.length === 0 ? (
+          <p className="text-gray-600">Nessun utente disponibile.</p>
+        ) : (
+          <div className="space-y-3">
+            {users.map((user) => {
+              const membershipDate = user.membershipExpiresAt
+                ? new Date(user.membershipExpiresAt).toISOString().slice(0, 10)
+                : '';
+
+              return (
+                <div key={user.id} className="border rounded-md p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-gray-900">{user.email}</p>
+                    <p className="text-sm text-gray-600">
+                      Ruolo: {user.role} · Stato: {user.membershipStatus === 'MEMBER' ? 'Tesserato' : 'Non tesserato'}
+                    </p>
+                  </div>
+                  <div className="flex flex-col md:flex-row gap-2 md:items-center">
+                    <input
+                      type="date"
+                      defaultValue={membershipDate}
+                      className="border rounded-md px-2 py-1"
+                      onChange={(e) => {
+                        const dateValue = e.target.value;
+                        if (dateValue) {
+                          handleMembershipUpdate(user.email, 'MEMBER', `${dateValue}T23:59:59.000Z`);
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      disabled={updateUserMembership.isPending}
+                      onClick={() =>
+                        handleMembershipUpdate(
+                          user.email,
+                          user.membershipStatus === 'MEMBER' ? 'NON_MEMBER' : 'MEMBER',
+                          user.membershipStatus === 'MEMBER' ? null : user.membershipExpiresAt || null
+                        )
+                      }
+                      className={`px-3 py-2 text-sm rounded-md text-white disabled:opacity-50 ${
+                        user.membershipStatus === 'MEMBER'
+                          ? 'bg-red-600 hover:bg-red-700'
+                          : 'bg-green-600 hover:bg-green-700'
+                      }`}
+                    >
+                      {user.membershipStatus === 'MEMBER' ? 'Imposta non tesserato' : 'Imposta tesserato'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="mb-8 bg-white p-6 rounded-lg shadow-lg">

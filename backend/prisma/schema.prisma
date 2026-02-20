@@ -16,6 +16,11 @@ enum UserRole {
   ADMIN
 }
 
+enum MembershipStatus {
+  MEMBER
+  NON_MEMBER
+}
+
 enum BookingStatus {
   PENDING
   CONFIRMED
@@ -29,6 +34,8 @@ model User {
   password  String
   name      String
   role      UserRole @default(PLAYER)
+  membershipStatus MembershipStatus @default(NON_MEMBER)
+  membershipExpiresAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -43,6 +50,7 @@ model Court {
   name        String
   description String?
   pricePerHour Decimal @db.Decimal(10, 2)
+  memberPricePerHour Decimal? @db.Decimal(10, 2)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
