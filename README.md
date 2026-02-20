@@ -38,12 +38,15 @@ Sistema di prenotazione campi padel full-stack.
        In locale il valore predefinito (`/api`) viene amplificato dal proxy di
        Vite verso `http://127.0.0.1:8000`.
 
-     - **CORS**: il backend legge `FRONTEND_URL` per decidere quali origini
-       sono autorizzate nei servizi CORS. Può contenere una lista separata da
-       virgole (es. `https://foo.onrender.com,https://foo-1.onrender.com`) e
-       viene utilizzata sia per le regole CORS sia per generare gli URL di
-       successo/cancellazione di Stripe. Assicurati che contenga **la stessa
-       host** da cui viene caricata la SPA, altrimenti vedrai errori di tipo
+     - **CORS**: il backend legge `FRONTEND_URL` (per il server Node) o
+       `CORS_ORIGINS`/`cors_origins` (per il server Python) per decidere quali
+       origini sono autorizzate. Entrambi possono contenere una lista separata da
+       virgole (es. `https://foo.onrender.com,https://foo-1.onrender.com`). Nel
+       deploy su Render è essenziale impostare l’URL del frontend su **entrambi**
+       i servizi: il servizio React ha bisogno di `VITE_API_BASE_URL` puntante al
+       dominio del backend e il servizio Python deve avere `CORS_ORIGINS` che
+       include il dominio della SPA. Assicurati che la lista contenga la stessa
+       host da cui viene caricata la SPA, altrimenti vedrai errori di tipo
        "header CORS non corrisponde" come quelli mostrati nei log.
 2. Avvia i servizi:
    - `docker-compose up -d`
