@@ -2,20 +2,34 @@ services:
   - type: web
     name: padel-backend
     env: python
-    buildCommand: "pip install -r backend/requirements.txt"
-    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port 10000"
+    rootDir: backend
+    plan: free
+    autoDeploy: true
+    buildCommand: |
+      pip install -r requirements.txt
+      # run migrations during build so the database is up-to-date
+      alembic upgrade head
+    startCommand: |
+      # use the port provided by Render
+      uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
         sync: false
-    plan: free
-    autoDeploy: true
-    rootDir: backend
+      - key: SECRET_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: PAYMENTS_ENABLED
+        value: "false"
+        sync: false
 
   - type: web
     name: padel-frontend
     env: node
-    buildCommand: "cd frontend && pnpm install && pnpm run build"
-    startCommand: "cd frontend && pnpm run preview -- --host 0.0.0.0 --port 3000"
+    rootDir: frontend
     plan: free
     autoDeploy: true
-    rootDir: frontend
+    buildCommand: |
+      cd frontend && pnpm install && pnpm run build
+    startCommand: |
+      cd frontend && pnpm run preview -- --host 0.0.0.0 --port $PORT
