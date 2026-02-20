@@ -19,6 +19,19 @@ Sistema di prenotazione campi padel full-stack.
 1. Copia i file env:
    - `cp backend/.env.example backend/.env`
    - `cp frontend/.env.example frontend/.env`
+     - **IMPORTANTE**: il frontend legge `VITE_API_BASE_URL` (o `VITE_API_URL`).
+       può essere:
+       * Un percorso relativo (`/api`).
+       * Un URL completo (`https://padelbooking-1.onrender.com/api`).
+       * Se fornisci solo il dominio (`https://padelbooking-1.onrender.com`), il
+         codice aggiunge automaticamente `/api` per te.
+       * **NON** specificare soltanto il dominio senza schema (es. `padelbooking.onrender.com`)
+         perché axios lo interpreta come percorso relativo e ottieni URL doppi.
+       
+       Dal 2026 la funzione di normalizzazione corregge automaticamente la maggior
+       parte degli errori: aggiunge `https://` quando manca e inserisce `/api`
+       quando il path è vuoto. In ogni caso, viene stampato un avviso in
+       console se la stringa finale è diversa da quella fornita.
 2. Avvia i servizi:
    - `docker-compose up -d`
 3. Esegui migrazioni backend:

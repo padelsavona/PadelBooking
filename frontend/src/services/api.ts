@@ -1,11 +1,64 @@
 import axios from 'axios';
 
+// derive the base URL from environment variables (Vite prefixes are used at build time)
+// the value **must** be either a relative path (e.g. '/api') or a fully-qualified URL
+// in production we occasionally see misconfigured env vars like "padelbooking.onrender.com"
+// which axios treats as a *relative* path, leading to requests such as
+//   https://host/currenthost.com/padelbooking.onrender.com/...
+// To avoid that we add a small helper that prepends `https://` when the value
+// looks like a hostname without a scheme.  The function is exported so unit
+// tests can verify its behaviour.
+export function normalizeBase(raw: string): string {
+  let trimmed = raw.replace(/\/+$/, '');
+
+  // If the developer supplied a fully‑qualified URL, we want to make sure it
+  // actually points at the API path. The backend lives under `/api`, so a
+  // value like `https://padelbooking-1.onrender.com` will otherwise result in
+  // requests to `/courts` which 404. Append `/api` automatically when the
+  // host has no pathname or just `/`.
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const url = new URL(trimmed);
+      if (url.pathname === '' || url.pathname === '/') {
+        url.pathname = '/api';
+      }
+      return url.toString().replace(/\/+$/, '');
+    } catch {
+      // if URL parsing fails, fallthrough to heuristic below
+    }
+  }
+
+  if (trimmed.startsWith('/')) {
+    return trimmed;
+  }
+
+  // assume HTTPS by default; the user should still provide a correct protocol
+  trimmed = `https://${trimmed}`;
+
+  // re-run the check above to append /api when necessary
+  try {
+    const url = new URL(trimmed);
+    if (url.pathname === '' || url.pathname === '/') {
+      url.pathname = '/api';
+    }
+    return url.toString().replace(/\/+$/, '');
+  } catch {
+    return trimmed.replace(/\/+$/, '');
+  }
+}
+
 const rawBase =
   import.meta.env.VITE_API_BASE_URL ||
   import.meta.env.VITE_API_URL ||
   '/api';
 
-const API_BASE_URL = rawBase.replace(/\/+$/, '');
+const API_BASE_URL = normalizeBase(rawBase);
+
+if (API_BASE_URL !== rawBase) {
+  console.warn(
+    `[api] normalized VITE_API_BASE_URL from "${rawBase}" to "${API_BASE_URL}"`
+  );
+}
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
