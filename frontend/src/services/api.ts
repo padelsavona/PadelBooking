@@ -79,12 +79,28 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const requestUrl = String(error.config?.url || '');
-    const isAuthRequest = requestUrl.includes('/auth/login') || requestUrl.includes('/auth/register');
+    const isAuthRequest =
+      requestUrl.includes('/auth/login') || requestUrl.includes('/auth/register');
 
     if (error.response?.status === 401 && !isAuthRequest) {
       localStorage.removeItem('access_token');
       window.location.href = '/login';
     }
+
+    // helpful diagnostic: if we get a 404 on any `/api` request it usually means
+    // the baseURL is pointed at the wrong server (e.g. frontend host instead of
+    // backend). show a clear message because the plain 404 from Cloudflare or
+    // a static host is confusing for users.
+    if (
+      error.response?.status === 404 &&
+      requestUrl.startsWith('/api')
+    ) {
+      console.error(
+        `[api] received 404 for ${requestUrl}.` +
+          ' Controlla che VITE_API_BASE_URL punti al servizio backend corretto.'
+      );
+    }
+
     return Promise.reject(error);
   }
 );

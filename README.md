@@ -19,19 +19,24 @@ Sistema di prenotazione campi padel full-stack.
 1. Copia i file env:
    - `cp backend/.env.example backend/.env`
    - `cp frontend/.env.example frontend/.env`
-     - **IMPORTANTE**: il frontend legge `VITE_API_BASE_URL` (o `VITE_API_URL`).
-       può essere:
-       * Un percorso relativo (`/api`).
-       * Un URL completo (`https://padelbooking-1.onrender.com/api`).
-       * Se fornisci solo il dominio (`https://padelbooking-1.onrender.com`), il
-         codice aggiunge automaticamente `/api` per te.
-       * **NON** specificare soltanto il dominio senza schema (es. `padelbooking.onrender.com`)
-         perché axios lo interpreta come percorso relativo e ottieni URL doppi.
+     - **IMPORTANTE**: il frontend vuole sapere dove è il backend.
+       Questo avviene tramite `VITE_API_BASE_URL` (o l'alias compatibile
+       `VITE_API_URL`). Il valore può essere:
+       * Un percorso relativo (es. `/api`) — utile solo quando frontend e backend
+         sono serviti dallo stesso dominio (tipico in Docker compose o deploy
+         a singolo host).
+       * Un URL completo a un servizio separato, p.es. `https://padel-backend.onrender.com`
+         (l'esempio è quello che Render assegna al servizio Python). Puoi omettere
+         la parte `/api` finale perché il codice la aggiunge per te se manca.
+       * Se fornisci solamente il dominio (`https://padel-backend.onrender.com`)
+         verrà normalizzato in `https://padel-backend.onrender.com/api`.
+       * **ATTENZIONE**: non scrivere mai `padel-backend.onrender.com` senza
+         schema, altrimenti axios lo considera relativo e finirai per chiamare
+         l'indirizzo sbagliato (di solito la tua app frontend), con conseguenti
+         404 confessionali come in questa issue.
        
-       Dal 2026 la funzione di normalizzazione corregge automaticamente la maggior
-       parte degli errori: aggiunge `https://` quando manca e inserisce `/api`
-       quando il path è vuoto. In ogni caso, viene stampato un avviso in
-       console se la stringa finale è diversa da quella fornita.
+       In locale il valore predefinito (`/api`) viene amplificato dal proxy di
+       Vite verso `http://127.0.0.1:8000`.
 2. Avvia i servizi:
    - `docker-compose up -d`
 3. Esegui migrazioni backend:
@@ -40,6 +45,26 @@ Sistema di prenotazione campi padel full-stack.
    - Frontend: `http://localhost:5173`
    - Backend API: `http://localhost:8000`
    - Health: `http://localhost:8000/api/health`
+
+### Operazioni su Render
+Quando viene distribuito con *render.yaml*, la configurazione prevede due
+servizi distinti:
+
+```yaml
+- type: web
+  name: padel-backend    # API Python
+  ...
+- type: web
+  name: padel-frontend   # SPA React
+  ...
+```
+
+Il dominio pubblico del backend sarà qualcosa come
+`https://padel-backend.onrender.com` e **non** lo stesso del frontend
+(`https://padel-frontend.onrender.com`). Per funzionare la SPA deve quindi
+avere `VITE_API_BASE_URL` impostato a quell'URL (o all'URL con `/api` in coda).
+Altrimenti tutte le chiamate finiscono sul server statico e restituiscono 404.
+`render.yaml` e la dashboard di Render ti mostrano il nome esatto del servizio.
 
 ## Variabili Stripe (backend/.env)
 Partendo da `backend/.env.example`, configura:
