@@ -108,6 +108,16 @@ export const getUserBookings = async (userId: string) => {
   });
 };
 
+export const getAllBookings = async () => {
+  return prisma.booking.findMany({
+    include: {
+      court: true,
+      user: { select: { id: true, name: true, email: true } },
+    },
+    orderBy: { startTime: 'desc' },
+  });
+};
+
 export const getCourtBookings = async (courtId: string, startDate?: Date, endDate?: Date) => {
   return prisma.booking.findMany({
     where: {
@@ -150,4 +160,106 @@ export const cancelBooking = async (bookingId: string, userId: string, isAdmin =
     where: { id: bookingId },
     data: { status: 'CANCELLED' },
   });
+};
+
+export const createBookingForUser = async (params: {
+  userId?: string;
+  userEmail?: string;
+  courtId: string;
+  startTime: Date;
+  endTime: Date;
+  notes?: string;
+  status?: 'PENDING' | 'CONFIRMED' | 'BLOCKED';
+}) => {
+  let bookingUserId = params.userId;
+
+  if (!bookingUserId && params.userEmail) {
+    const user = await prisma.user.findUnique({ where: { email: params.userEmail } });
+    if (!user) {
+      throw new AppError(404, 'Utente non trovato', 'USER_NOT_FOUND');
+    }
+    bookingUserId = user.id;
+  }
+
+  if (!bookingUserId) {
+    throw new AppError(400, 'userId o userEmail obbligatorio', 'INVALID_INPUT');
+  }
+
+  const booking = await createBooking(
+    bookingUserId,
+    params.courtId,
+    params.startTime,
+    params.endTime,
+    params.notes,
+    params.status === 'BLOCKED'
+  );
+
+  if (!params.status || booking.status === params.status) {
+    return booking;
+  }
+
+  return prisma.booking.update({
+    where: { id: booking.id },
+    data: { status: params.status },
+    include: {
+      court: true,
+      user: { select: { id: true, name: true, email: true } },
+    },
+  });
+};
+
+export const updateBookingAsAdmin = async (
+  bookingId: string,
+  data: {
+    courtId?: string;
+    startTime?: Date;
+    endTime?: Date;
+    notes?: string;
+    status?: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'BLOCKED';
+  }
+) => {
+  const booking = await getBookingById(bookingId);
+
+  const nextCourtId = data.courtId ?? booking.courtId;
+  const nextStartTime = data.startTime ?? booking.startTime;
+  const nextEndTime = data.endTime ?? booking.endTime;
+
+  if (nextStartTime >= nextEndTime) {
+    throw new AppError(400, 'End time must be after start time', 'INVALID_TIME_RANGE');
+  }
+
+  const hasConflict = await checkBookingConflict(nextCourtId, nextStartTime, nextEndTime, bookingId);
+  if (hasConflict) {
+    throw new AppError(409, 'Time slot already booked', 'BOOKING_CONFLICT');
+  }
+
+  const court = await getCourtById(nextCourtId);
+  const totalPrice = calculateBookingPrice(Number(court.pricePerHour), nextStartTime, nextEndTime);
+
+  return prisma.booking.update({
+    where: { id: bookingId },
+    data: {
+      courtId: nextCourtId,
+      startTime: nextStartTime,
+      endTime: nextEndTime,
+      notes: data.notes,
+      status: data.status,
+      totalPrice,
+    },
+    include: {
+      court: true,
+      user: { select: { id: true, name: true, email: true } },
+    },
+  });
+};
+
+export const deleteBookingAsAdmin = async (bookingId: string) => {
+  await getBookingById(bookingId);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.payment.deleteMany({ where: { bookingId } });
+    await tx.booking.delete({ where: { id: bookingId } });
+  });
+
+  return { success: true };
 };

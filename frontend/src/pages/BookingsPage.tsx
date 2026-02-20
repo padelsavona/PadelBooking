@@ -28,7 +28,7 @@ function BookingsPage() {
   };
   
   const getStatusLabel = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'confirmed':
         return 'Confermata';
       case 'pending':
@@ -43,7 +43,7 @@ function BookingsPage() {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'confirmed':
         return 'bg-green-100 text-green-800';
       case 'pending':
@@ -93,7 +93,7 @@ function BookingsPage() {
                       {booking.notes && <p className="mt-1 italic">{booking.notes}</p>}
                     </div>
                   </div>
-                  {booking.status !== 'cancelled' && booking.status !== 'completed' && (
+                  {booking.status.toLowerCase() !== 'cancelled' && booking.status.toLowerCase() !== 'completed' && (
                     <button
                       onClick={() => cancelMutation.mutate(booking.id)}
                       disabled={cancelMutation.isPending}

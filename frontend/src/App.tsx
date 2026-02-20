@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
@@ -9,6 +9,7 @@ import AdminPage from './pages/AdminPage';
 
 function App() {
   const { user, logout, initialize } = useAuthStore();
+  const role = user?.role?.toLowerCase();
 
   useEffect(() => {
     initialize();
@@ -39,7 +40,7 @@ function App() {
                       Le mie prenotazioni
                     </Link>
                   )}
-                  {user && (user.role === 'admin' || user.role === 'manager') && (
+                  {user && (role === 'admin' || role === 'manager') && (
                     <Link
                       to="/admin"
                       className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
@@ -80,8 +81,13 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            <Route path="/bookings" element={<BookingsPage />} />
-            <Route path="/admin" element={<AdminPage />} />
+            <Route path="/bookings" element={user ? <BookingsPage /> : <Navigate to="/login" replace />} />
+            <Route
+              path="/admin"
+              element={
+                role === 'admin' || role === 'manager' ? <AdminPage /> : <Navigate to="/" replace />
+              }
+            />
           </Routes>
         </main>
       </div>

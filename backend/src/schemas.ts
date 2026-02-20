@@ -22,6 +22,29 @@ export const updateBookingSchema = z.object({
   status: z.enum(['CANCELLED']),
 });
 
+export const adminCreateBookingSchema = z
+  .object({
+    userId: z.string().uuid().optional(),
+    userEmail: z.string().email().optional(),
+    courtId: z.string().uuid(),
+    startTime: z.string().datetime(),
+    endTime: z.string().datetime(),
+    notes: z.string().optional(),
+    status: z.enum(['PENDING', 'CONFIRMED', 'BLOCKED']).optional(),
+  })
+  .refine((value) => Boolean(value.userId || value.userEmail), {
+    message: 'Devi specificare userId oppure userEmail',
+    path: ['userEmail'],
+  });
+
+export const adminUpdateBookingSchema = z.object({
+  courtId: z.string().uuid().optional(),
+  startTime: z.string().datetime().optional(),
+  endTime: z.string().datetime().optional(),
+  notes: z.string().optional(),
+  status: z.enum(['PENDING', 'CONFIRMED', 'CANCELLED', 'BLOCKED']).optional(),
+});
+
 export const createCourtSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),

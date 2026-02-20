@@ -2,12 +2,12 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { courtService } from '../services/courts';
 import { bookingService } from '../services/bookings';
-import { paymentService } from '../services/payments';
 import { useAuthStore } from '../stores/authStore';
 
 function HomePage() {
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
+  const role = user?.role?.toLowerCase();
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
 
   const [courtId, setCourtId] = useState<number | string | ''>('');
@@ -58,10 +58,6 @@ function HomePage() {
     mutationFn: bookingService.blockTimeslot,
   });
 
-  const createCheckoutMutation = useMutation({
-    mutationFn: paymentService.createCheckoutSession,
-  });
-
   const timeOptions = useMemo(() => {
     const options: string[] = [];
     for (let hour = 0; hour < 24; hour++) {
@@ -104,25 +100,22 @@ function HomePage() {
     const end_time = toIsoDateTime(date, endTime);
 
     try {
-      if (user.role === 'admin' || user.role === 'manager') {
+      if (role === 'admin' || role === 'manager') {
         await blockTimeslotMutation.mutateAsync({
-          court_id: Number(courtId),
+          court_id: String(courtId),
           start_time,
           end_time,
           notes,
         });
         setMessage('Fascia oraria bloccata con successo.');
       } else {
-        const booking = await createBookingMutation.mutateAsync({
-          court_id: Number(courtId),
+        await createBookingMutation.mutateAsync({
+          court_id: String(courtId),
           start_time,
           end_time,
           notes,
         });
-
-        const checkout = await createCheckoutMutation.mutateAsync({ booking_id: Number(booking.id) });
-        window.location.href = checkout.checkout_url;
-        return;
+        setMessage('Partita creata con successo.');
       }
 
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
@@ -138,8 +131,8 @@ function HomePage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <h1 className="text-4xl font-bold text-gray-900 mb-6">Prenotazione Padel</h1>
       <p className="text-gray-600 mb-10">
-        Prenota i campi tra le 00:00 e le 24:00. I giocatori pagano online con Stripe; gli
-        amministratori possono bloccare fasce orarie senza pagamento.
+        Prenota i campi tra le 00:00 e le 24:00. Gli utenti devono essere autenticati per creare una
+        partita; gli amministratori possono bloccare fasce orarie.
       </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -176,7 +169,7 @@ function HomePage() {
 
         <div className="bg-white shadow rounded-lg p-6">
           <h2 className="text-2xl font-semibold mb-4">
-            {user?.role === 'admin' || user?.role === 'manager'
+            {role === 'admin' || role === 'manager'
               ? 'Blocca fascia oraria'
               : 'Crea prenotazione'}
           </h2>
@@ -301,18 +294,16 @@ function HomePage() {
               type="submit"
               disabled={
                 createBookingMutation.isPending ||
-                createCheckoutMutation.isPending ||
                 blockTimeslotMutation.isPending
               }
               className="w-full bg-blue-600 text-white py-2 rounded-md font-medium hover:bg-blue-700 disabled:opacity-60"
             >
               {createBookingMutation.isPending ||
-              createCheckoutMutation.isPending ||
               blockTimeslotMutation.isPending
                 ? 'Elaborazione...'
-                : user?.role === 'admin' || user?.role === 'manager'
+                : role === 'admin' || role === 'manager'
                   ? 'Blocca fascia oraria'
-                  : 'Prenota e paga'}
+                  : 'Crea partita'}
             </button>
           </form>
         </div>

@@ -5,6 +5,7 @@ import {
   getCourtById,
   createCourt,
   updateCourt,
+  deleteCourt,
 } from '../services/court.service.js';
 import { getCourtBookings } from '../services/booking.service.js';
 import { authenticate, requireAdmin } from '../middleware/auth.middleware.js';
@@ -43,5 +44,11 @@ export default async function courtRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const body = updateCourtSchema.parse(request.body);
     return updateCourt(id, body);
+  });
+
+  // Delete court (admin only)
+  fastify.delete('/:id', { onRequest: [authenticate, requireAdmin] }, async (request) => {
+    const { id } = request.params as { id: string };
+    return deleteCourt(id);
   });
 }

@@ -44,3 +44,32 @@ export const updateCourt = async (
     data,
   });
 };
+
+export const deleteCourt = async (id: string) => {
+  await getCourtById(id);
+
+  const bookings = await prisma.booking.findMany({
+    where: { courtId: id },
+    select: { id: true },
+  });
+
+  const bookingIds = bookings.map((booking) => booking.id);
+
+  await prisma.$transaction(async (tx) => {
+    if (bookingIds.length > 0) {
+      await tx.payment.deleteMany({
+        where: {
+          bookingId: { in: bookingIds },
+        },
+      });
+
+      await tx.booking.deleteMany({
+        where: { id: { in: bookingIds } },
+      });
+    }
+
+    await tx.court.delete({ where: { id } });
+  });
+
+  return { success: true };
+};

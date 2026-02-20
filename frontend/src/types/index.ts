@@ -38,8 +38,8 @@ export interface CourtAvailability {
 }
 
 export interface Booking {
-  id: number; // torna a number per coerenza con checkout/cancel API
-  court_id?: number; // <- aggiungi questo campo
+  id: number | string;
+  court_id?: number | string;
   courtId?: number | string;
 
   // già presenti
@@ -53,6 +53,11 @@ export interface Booking {
   endTime?: string;
   totalPrice?: number;
   court?: Court;
+  user?: {
+    id: string;
+    name?: string;
+    email?: string;
+  };
 
   // campi usati nelle pagine
   is_blocked?: boolean;
@@ -78,14 +83,14 @@ export interface TokenResponse {
 }
 
 export interface BookingCreate {
-  court_id: number;
+  court_id: number | string;
   start_time: string;
   end_time: string;
   notes?: string;
 }
 
 export interface AdminBlockRequest {
-  court_id: number;
+  court_id: number | string;
   start_time: string;
   end_time: string;
   notes?: string;

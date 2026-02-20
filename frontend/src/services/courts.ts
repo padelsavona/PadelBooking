@@ -110,4 +110,17 @@ export const courtService = {
     const response = await api.patch<CourtApi>(`/courts/${id}`, payload);
     return normalizeCourt(response.data);
   },
+
+  async createCourt(data: Pick<Court, 'name' | 'description' | 'hourly_rate'>): Promise<Court> {
+    const response = await api.post<CourtApi>('/courts', {
+      name: data.name,
+      description: data.description,
+      pricePerHour: data.hourly_rate,
+    });
+    return normalizeCourt(response.data);
+  },
+
+  async deleteCourt(id: number | string): Promise<void> {
+    await api.delete(`/courts/${id}`);
+  },
 };
