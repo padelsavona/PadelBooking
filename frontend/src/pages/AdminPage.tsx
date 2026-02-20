@@ -233,7 +233,7 @@ export default function AdminPage() {
       await updateCourt.mutateAsync({
         id,
         name: draft?.name || fallback.name,
-        description: draft?.description || fallback.description,
+        description: (draft?.description ?? fallback.description ?? '').trim(),
         hourly_rate: Number(draft?.hourly_rate || fallback.hourly_rate),
         member_hourly_rate: Number(draft?.member_hourly_rate || fallback.member_hourly_rate || fallback.hourly_rate),
       });
